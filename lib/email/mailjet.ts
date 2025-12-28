@@ -36,7 +36,7 @@ Name: ${santeeName}
 Address: ${santeeAddress}
 Message: ${santeeMessage}
 
-View your group: ${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}`,
+View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
           HTMLPart: `
             <h2>Hello ${santaName}!</h2>
             <p>Your Secret Santa assignment is:</p>
@@ -45,7 +45,7 @@ View your group: ${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.u
               <li><strong>Address:</strong> ${santeeAddress}</li>
               <li><strong>Message:</strong> ${santeeMessage}</li>
             </ul>
-            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}">View your group</a></p>
+            <p><a href="https://secretestsanta.up.railway.app/group/${groupUrl}">View your group</a></p>
           `,
         },
       ],
@@ -64,7 +64,7 @@ export async function sendPasswordResetEmail(
   groupUrl: string
 ) {
   try {
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}/reset?token=${resetToken}`;
+    const resetUrl = `https://secretestsanta.up.railway.app/group/${groupUrl}/reset?token=${resetToken}`;
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
