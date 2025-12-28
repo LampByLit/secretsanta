@@ -302,16 +302,19 @@ export default function GroupPage() {
                     {groupData.decryptionCount} / {groupData.totalMembers} Members Have Viewed Their Assignment
                   </div>
                 )}
-                <div className="flex items-center gap-2">
-                  <div className="text-lg font-semibold text-green-600">
-                    Gifts Confirmed Shipped: {groupData.shipmentCount} / {groupData.memberCount}
+                {/* Only show shipment count after cycle initiation */}
+                {(groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && (
+                  <div className="flex items-center gap-2">
+                    <div className="text-lg font-semibold text-green-600">
+                      Gifts Confirmed Shipped: {groupData.shipmentCount} / {groupData.memberCount}
+                    </div>
+                    {groupData.shipmentCount === groupData.memberCount && groupData.memberCount > 0 && (
+                      <span className="px-3 py-1 text-sm font-bold text-red-600 border-2 border-red-600 rounded">
+                        COMPLETE
+                      </span>
+                    )}
                   </div>
-                  {groupData.shipmentCount === groupData.memberCount && groupData.memberCount > 0 && (
-                    <span className="px-3 py-1 text-sm font-bold text-red-600 border-2 border-red-600 rounded">
-                      COMPLETE
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -332,15 +335,29 @@ export default function GroupPage() {
               )}
               
               {isCreator && (
-                <button
-                  onClick={() => {
-                    setCloseEmail(creatorEmail || '');
-                    setShowCloseConfirm(true);
-                  }}
-                  className="w-full py-3 rounded-lg font-semibold mb-4 bg-yellow-600 text-white hover:bg-yellow-700 transition-colors"
-                >
-                  CLOSE GROUP (Stop Accepting New Members)
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      setCloseEmail(creatorEmail || '');
+                      setShowCloseConfirm(true);
+                    }}
+                    disabled={groupData.memberCount < 4}
+                    className={`w-full py-3 rounded-lg font-semibold mb-4 transition-colors ${
+                      groupData.memberCount >= 4
+                        ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {groupData.memberCount >= 4
+                      ? 'CLOSE GROUP (Stop Accepting New Members)'
+                      : `Need ${4 - groupData.memberCount} more member(s) to close group`}
+                  </button>
+                  {groupData.memberCount < 4 && (
+                    <p className="text-sm text-gray-600 mb-4 text-center">
+                      Groups must have at least 4 members before they can be closed.
+                    </p>
+                  )}
+                </>
               )}
             </>
           )}

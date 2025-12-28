@@ -54,14 +54,22 @@ export async function POST(
       );
     }
 
+    // Check if there are at least 4 members before allowing closure
+    const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
+    if (activeMembers.length < 4) {
+      return NextResponse.json(
+        { error: `Cannot close group: Need at least 4 members. Currently have ${activeMembers.length} member(s).` },
+        { status: 400 }
+      );
+    }
+
     // Update group status to 'closed'
     const db = getDb();
     const updateStmt = db.prepare('UPDATE groups SET status = ?, updated_at = ? WHERE id = ?');
     updateStmt.run('closed', Date.now(), groupId);
 
-    // Get backfill status
+    // Get backfill status (activeMembers already fetched above)
     const backfillStatus = dbHelpers.checkBackfillStatus(groupId);
-    const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
     const completedCount = activeMembers.length - backfillStatus.missingMembers.length;
 
     // Send email to creator
