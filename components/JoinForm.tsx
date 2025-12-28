@@ -7,12 +7,14 @@ interface JoinFormProps {
   groupId: string;
   onClose: () => void;
   onSuccess: () => void;
+  creatorEmail?: string;
+  creatorName?: string;
 }
 
-export default function JoinForm({ groupId, onClose, onSuccess }: JoinFormProps) {
+export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, creatorName }: JoinFormProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    name: creatorName || '',
+    email: creatorEmail || '',
     password: '',
     message: '',
     address: '',

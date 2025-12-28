@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import JoinForm from '@/components/JoinForm';
+import LoginForm from '@/components/LoginForm';
 import AssignmentDisplay from '@/components/AssignmentDisplay';
 
 interface Member {
@@ -33,10 +34,12 @@ export default function GroupPage() {
   const [isCreator, setIsCreator] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInitiateConfirm, setShowInitiateConfirm] = useState(false);
   const [assignment, setAssignment] = useState<any>(null);
   const [error, setError] = useState('');
+  const [creatorEmail, setCreatorEmail] = useState<string>('');
 
   useEffect(() => {
     loadGroupData();
@@ -73,6 +76,12 @@ export default function GroupPage() {
         .split('; ')
         .find(row => row.startsWith(`santa_creator_${data.group.id}`));
       setIsCreator(!!creatorCookie);
+      
+      // Extract creator email from cookie if present
+      if (creatorCookie) {
+        const emailFromCookie = creatorCookie.split('=')[1];
+        setCreatorEmail(emailFromCookie);
+      }
       
       // Check if user is already a member (from cookie)
       const memberCookie = document.cookie
@@ -363,7 +372,20 @@ export default function GroupPage() {
           )}
 
           {groupData.group.status !== 'pending' && (
-            <AssignmentDisplay groupId={groupData.group.id} slug={slug} />
+            <>
+              {!isMember ? (
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowLoginForm(true)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Log In to View Your Assignment
+                  </button>
+                </div>
+              ) : (
+                <AssignmentDisplay groupId={groupData.group.id} slug={slug} />
+              )}
+            </>
           )}
 
           {/* Forgot Password link - always visible */}
@@ -380,9 +402,22 @@ export default function GroupPage() {
         {showJoinForm && (
           <JoinForm
             groupId={groupData.group.id}
+            creatorEmail={isCreator ? creatorEmail : undefined}
+            creatorName={isCreator ? undefined : undefined} // We don't have creator name stored, but email is enough
             onClose={() => setShowJoinForm(false)}
             onSuccess={() => {
               setShowJoinForm(false);
+              loadGroupById(groupData.group.id);
+            }}
+          />
+        )}
+
+        {showLoginForm && (
+          <LoginForm
+            groupId={groupData.group.id}
+            onClose={() => setShowLoginForm(false)}
+            onSuccess={() => {
+              setShowLoginForm(false);
               loadGroupById(groupData.group.id);
             }}
           />
