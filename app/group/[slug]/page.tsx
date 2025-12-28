@@ -250,6 +250,35 @@ export default function GroupPage() {
   };
 
 
+  const handleAutoBackfill = async () => {
+    if (!groupData || !autoBackfillPassword || !creatorEmail) {
+      setError('Password is required');
+      return;
+    }
+    
+    setAutoBackfilling(true);
+    setError('');
+    
+    try {
+      console.log(`[Auto Backfill] Starting backfill for ${creatorEmail}`);
+      await performClientSideBackfill(groupData.group.id, creatorEmail, autoBackfillPassword);
+      console.log(`[Auto Backfill] ✓ Backfill completed`);
+      
+      // Clear password from memory
+      setAutoBackfillPassword('');
+      setShowAutoBackfillPrompt(false);
+      autoBackfillAttempted.current = true;
+      
+      // Reload group data to check if status changed
+      await loadGroupById(groupData.group.id);
+    } catch (err: any) {
+      console.error(`[Auto Backfill] ✗ Error:`, err);
+      setError(err.message || 'Failed to complete backfill. Please try again.');
+    } finally {
+      setAutoBackfilling(false);
+    }
+  };
+
   const handleInitiateCycle = async (email: string, password: string) => {
     if (!groupData || !isCreator) return;
     
@@ -947,34 +976,5 @@ export default function GroupPage() {
       </div>
     </main>
   );
-
-  const handleAutoBackfill = async () => {
-    if (!groupData || !autoBackfillPassword || !creatorEmail) {
-      setError('Password is required');
-      return;
-    }
-    
-    setAutoBackfilling(true);
-    setError('');
-    
-    try {
-      console.log(`[Auto Backfill] Starting backfill for ${creatorEmail}`);
-      await performClientSideBackfill(groupData.group.id, creatorEmail, autoBackfillPassword);
-      console.log(`[Auto Backfill] ✓ Backfill completed`);
-      
-      // Clear password from memory
-      setAutoBackfillPassword('');
-      setShowAutoBackfillPrompt(false);
-      autoBackfillAttempted.current = true;
-      
-      // Reload group data to check if status changed
-      await loadGroupById(groupData.group.id);
-    } catch (err: any) {
-      console.error(`[Auto Backfill] ✗ Error:`, err);
-      setError(err.message || 'Failed to complete backfill. Please try again.');
-    } finally {
-      setAutoBackfilling(false);
-    }
-  };
 }
 
