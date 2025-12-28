@@ -12,7 +12,7 @@ export interface Group {
 export interface Member {
   id: string;
   group_id: string;
-  name: string; // AES encrypted (client-side with password)
+  name: string; // NOT encrypted - needs to be visible in group
   email: string; // AES encrypted (client-side with password)
   email_hash: string; // SHA-256 hash of email for lookups
   password_hash: string;

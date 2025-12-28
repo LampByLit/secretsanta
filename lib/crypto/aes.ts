@@ -105,7 +105,8 @@ export async function decryptPrivateKey(encrypted: string, password: string): Pr
 }
 
 /**
- * Encrypt member data fields (name, address, message, email) for secure storage
+ * Encrypt member data fields (address, message, email) for secure storage
+ * Name is NOT encrypted - it needs to be visible in the group
  * Each field is encrypted independently with the user's password
  */
 export async function encryptMemberData(
@@ -115,20 +116,19 @@ export async function encryptMemberData(
   email: string,
   password: string
 ): Promise<{
-  nameEncrypted: string;
+  name: string; // Not encrypted - needs to be visible
   addressEncrypted: string;
   messageEncrypted: string;
   emailEncrypted: string;
 }> {
-  const [nameEncrypted, addressEncrypted, messageEncrypted, emailEncrypted] = await Promise.all([
-    encryptData(name, password),
+  const [addressEncrypted, messageEncrypted, emailEncrypted] = await Promise.all([
     encryptData(address, password),
     encryptData(message, password),
     encryptData(email, password),
   ]);
 
   return {
-    nameEncrypted,
+    name, // Return name as-is (not encrypted)
     addressEncrypted,
     messageEncrypted,
     emailEncrypted,
@@ -136,10 +136,11 @@ export async function encryptMemberData(
 }
 
 /**
- * Decrypt member data fields
+ * Decrypt member data fields (address, message, email)
+ * Name is passed through as-is (not encrypted)
  */
 export async function decryptMemberData(
-  nameEncrypted: string,
+  name: string, // Not encrypted - pass through as-is
   addressEncrypted: string,
   messageEncrypted: string,
   emailEncrypted: string,
@@ -150,8 +151,7 @@ export async function decryptMemberData(
   message: string;
   email: string;
 }> {
-  const [name, address, message, email] = await Promise.all([
-    decryptData(nameEncrypted, password),
+  const [address, message, email] = await Promise.all([
     decryptData(addressEncrypted, password),
     decryptData(messageEncrypted, password),
     decryptData(emailEncrypted, password),

@@ -101,13 +101,14 @@ export async function GET(
     const santeeStmt = db.prepare('SELECT name, address, message, email FROM members WHERE id = ?');
     const santee = santeeStmt.get(assignment.santee_id) as { name: string; address: string; message: string; email: string };
 
-    // Return encrypted assignment details (client should decrypt using ElGamal, not this route)
+    // Return assignment details (client should decrypt using ElGamal, not this route)
     // This route is deprecated - assignments should be decrypted via ElGamal encrypted_messages
+    // Note: Name is cleartext, but address and message are encrypted
     return NextResponse.json({
-      santeeName: santee.name, // Encrypted - cannot be decrypted with santa's password
+      santeeName: santee.name, // Cleartext - visible
       santeeAddress: santee.address, // Encrypted - cannot be decrypted with santa's password
       santeeMessage: santee.message, // Encrypted - cannot be decrypted with santa's password
-      encrypted: true, // Flag to indicate data is encrypted
+      encrypted: true, // Flag to indicate address/message are encrypted
     });
   } catch (error) {
     console.error('Error fetching assignment:', error);

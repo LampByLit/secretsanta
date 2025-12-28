@@ -88,7 +88,8 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
       // Encrypt private key with user's password for secure server storage
       const encryptedPrivateKey = await encryptPrivateKey(keyPair.privateKey.toString(), formData.password);
 
-      // Encrypt all member data with password (client-side encryption for privacy)
+      // Encrypt sensitive member data with password (client-side encryption for privacy)
+      // Name is NOT encrypted - it needs to be visible in the group
       const encryptedData = await encryptMemberData(
         formData.name,
         formData.address,
@@ -128,11 +129,12 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
       }
 
       // Submit join request with encrypted data, public key, encrypted private key, and pre-encrypted messages
+      // Name is sent in cleartext (not encrypted) - it needs to be visible in the group
       const joinResponse = await fetch(`/api/groups/${groupId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nameEncrypted: encryptedData.nameEncrypted,
+          name: encryptedData.name, // Name is NOT encrypted - needs to be visible
           emailEncrypted: encryptedData.emailEncrypted,
           addressEncrypted: encryptedData.addressEncrypted,
           messageEncrypted: encryptedData.messageEncrypted,

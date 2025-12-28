@@ -40,8 +40,9 @@ export async function POST(
 ) {
   try {
     // Parse encrypted member information and cryptographic keys from request
+    // Note: name is NOT encrypted - it needs to be visible in the group
     const { 
-      nameEncrypted, 
+      name, // Not encrypted - needs to be visible
       emailEncrypted, 
       addressEncrypted, 
       messageEncrypted, 
@@ -54,9 +55,9 @@ export async function POST(
     const { groupId } = params;
 
     // Validate all required fields are provided
-    if (!nameEncrypted || !emailEncrypted || !addressEncrypted || !messageEncrypted || !emailHash || !password || !publicKey || !encryptedPrivateKey) {
+    if (!name || !emailEncrypted || !addressEncrypted || !messageEncrypted || !emailHash || !password || !publicKey || !encryptedPrivateKey) {
       return NextResponse.json(
-        { error: 'All fields are required: nameEncrypted, emailEncrypted, addressEncrypted, messageEncrypted, emailHash, password, publicKey, and encryptedPrivateKey' },
+        { error: 'All fields are required: name, emailEncrypted, addressEncrypted, messageEncrypted, emailHash, password, publicKey, and encryptedPrivateKey' },
         { status: 400 }
       );
     }
@@ -123,7 +124,7 @@ export async function POST(
     stmt.run(
       memberId,
       groupId,
-      nameEncrypted, // Encrypted name
+      name, // Name in cleartext - needs to be visible
       emailEncrypted, // Encrypted email
       emailHash, // SHA-256 hash for lookups
       passwordHash,

@@ -30,9 +30,8 @@ export async function GET(
       const member = dbHelpers.getMemberByEmail(groupId, checkEmail);
       isMember = !!member;
       if (member) {
-        // Note: member.name is encrypted and cannot be decrypted without password
-        // For now, we'll use a placeholder - client should decrypt if they have password
-        loggedInUserName = member.name; // Encrypted - client should decrypt if needed
+        // Member name is in cleartext - visible
+        loggedInUserName = member.name;
         // Check if shipment is confirmed
         const db = getDb();
         const shipmentCheck = db.prepare('SELECT id FROM shipment_confirmations WHERE group_id = ? AND member_id = ?');
@@ -66,16 +65,15 @@ export async function GET(
         status: group.status,
         uniqueUrl: group.unique_url,
       },
-      // Note: Member names are encrypted and cannot be decrypted without their passwords
-      // For display, we return encrypted data - client should handle display appropriately
+      // Member names are in cleartext - visible to all
       members: visibleMembers.map(m => ({
         id: m.id,
-        name: m.name, // Encrypted - cannot be decrypted server-side
+        name: m.name, // Cleartext - visible in group
         excluded: m.excluded,
       })),
       allMembers: allMembers.map(m => ({
         id: m.id,
-        name: m.name, // Encrypted - cannot be decrypted server-side
+        name: m.name, // Cleartext - visible in group
         excluded: m.excluded,
       })),
       memberCount: visibleMembers.length,
