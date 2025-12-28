@@ -119,7 +119,7 @@ export async function POST(
         groupId,
         assignment.santaId,
         assignment.santeeId,
-        0, // revealed = false (SQLite uses 0/1, not boolean)
+        0, // revealed = false (SQLite uses 0/1 for booleans)
         now
       );
     }
