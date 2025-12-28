@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
+import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
+import { validateEmail } from '@/lib/utils/validation';
 
 /**
  * Get the current user's Secret Santa assignment
@@ -40,8 +42,27 @@ export async function GET(
     // Validate required authentication parameters
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required for authentication' },
+        { error: 'Email and password are required' },
         { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return NextResponse.json(
+        { error: emailValidation.error || 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(request, email);
+    const rateLimit = checkRateLimit(identifier, { maxRequests: 10, windowMs: 15 * 60 * 1000 });
+    if (rateLimit.rateLimited) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please try again later.' },
+        { status: 429 }
       );
     }
 
@@ -49,8 +70,8 @@ export async function GET(
     const member = dbHelpers.getMemberByEmail(groupId, email);
     if (!member) {
       return NextResponse.json(
-        { error: 'Member not found in this group' },
-        { status: 404 }
+        { error: 'Invalid email or password' },
+        { status: 401 }
       );
     }
 
@@ -58,7 +79,7 @@ export async function GET(
     const isValid = await bcrypt.compare(password, member.password_hash);
     if (!isValid) {
       return NextResponse.json(
-        { error: 'Invalid password' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
@@ -67,7 +88,7 @@ export async function GET(
     const assignment = dbHelpers.getAssignment(groupId, member.id);
     if (!assignment) {
       return NextResponse.json(
-        { error: 'No Secret Santa assignment found. The gift exchange may not have started yet.' },
+        { error: 'No assignment found. The gift exchange may not have started yet.' },
         { status: 404 }
       );
     }
@@ -86,7 +107,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching assignment:', error);
     return NextResponse.json(
-      { error: 'Failed to retrieve your Secret Santa assignment. Please try again.' },
+      { error: 'Unable to retrieve your assignment. Please try again.' },
       { status: 500 }
     );
   }

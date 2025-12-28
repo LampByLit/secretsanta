@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
 import { sendAssignmentEmail } from '@/lib/email/mailjet';
+import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
+import { validateEmail } from '@/lib/utils/validation';
 
 export async function POST(
   request: NextRequest,
@@ -13,8 +15,27 @@ export async function POST(
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email and password required' },
+        { error: 'Email and password are required' },
         { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return NextResponse.json(
+        { error: emailValidation.error || 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(request, email);
+    const rateLimit = checkRateLimit(identifier, { maxRequests: 10, windowMs: 15 * 60 * 1000 });
+    if (rateLimit.rateLimited) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please try again later.' },
+        { status: 429 }
       );
     }
 
@@ -22,15 +43,15 @@ export async function POST(
     const member = dbHelpers.getMemberByEmail(groupId, email);
     if (!member) {
       return NextResponse.json(
-        { error: 'Member not found' },
-        { status: 404 }
+        { error: 'Invalid email or password' },
+        { status: 401 }
       );
     }
 
     const isValid = await bcrypt.compare(password, member.password_hash);
     if (!isValid) {
       return NextResponse.json(
-        { error: 'Invalid password' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
@@ -84,7 +105,7 @@ export async function POST(
   } catch (error) {
     console.error('Error marking assignment as decrypted:', error);
     return NextResponse.json(
-      { error: 'Failed to mark assignment as decrypted' },
+      { error: 'Unable to process your request. Please try again.' },
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
+import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
 
 export async function POST(
   request: NextRequest,
@@ -12,8 +13,18 @@ export async function POST(
 
     if (!token || !newPassword) {
       return NextResponse.json(
-        { error: 'Token and new password required' },
+        { error: 'Reset token and new password are required' },
         { status: 400 }
+      );
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(request);
+    const rateLimit = checkRateLimit(identifier, { maxRequests: 5, windowMs: 60 * 60 * 1000 });
+    if (rateLimit.rateLimited) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please try again later.' },
+        { status: 429 }
       );
     }
 
@@ -56,7 +67,7 @@ export async function POST(
   } catch (error) {
     console.error('Error resetting password:', error);
     return NextResponse.json(
-      { error: 'Failed to reset password' },
+      { error: 'Unable to reset password. Please try again.' },
       { status: 500 }
     );
   }

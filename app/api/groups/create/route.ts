@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
+import { validateEmail } from '@/lib/utils/validation';
 
 /**
  * Create a new Secret Santa group
@@ -34,8 +36,27 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!name || !email || !password || !groupName) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, email, password, and groupName are required' },
+        { error: 'All fields are required: name, email, password, and groupName' },
         { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return NextResponse.json(
+        { error: emailValidation.error || 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting (more lenient for group creation)
+    const identifier = getClientIdentifier(request, email);
+    const rateLimit = checkRateLimit(identifier, { maxRequests: 10, windowMs: 60 * 60 * 1000 });
+    if (rateLimit.rateLimited) {
+      return NextResponse.json(
+        { error: 'Too many group creation attempts. Please try again later.' },
+        { status: 429 }
       );
     }
 
@@ -67,7 +88,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating group:', error);
     return NextResponse.json(
-      { error: 'Failed to create group. Please try again.' },
+      { error: 'Unable to create group. Please try again.' },
       { status: 500 }
     );
   }

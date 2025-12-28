@@ -1,8 +1,11 @@
 import Mailjet from 'node-mailjet';
+import { sanitizeEmailText, sanitizeEmailAddress } from '@/lib/utils/sanitize';
+// Environment validation happens automatically via import in db/client.ts
+import '@/lib/utils/env';
 
 const mailjet = new Mailjet({
-  apiKey: process.env.MAILJET_API_KEY,
-  apiSecret: process.env.MAILJET_SECRET_KEY,
+  apiKey: process.env.MAILJET_API_KEY!,
+  apiSecret: process.env.MAILJET_SECRET_KEY!,
 });
 
 export async function sendAssignmentEmail(
@@ -14,38 +17,49 @@ export async function sendAssignmentEmail(
   groupUrl: string
 ) {
   try {
+    // Sanitize all user-provided content
+    const sanitizedToEmail = sanitizeEmailAddress(toEmail);
+    const sanitizedSantaName = sanitizeEmailText(santaName);
+    const sanitizedSanteeName = sanitizeEmailText(santeeName);
+    const sanitizedSanteeAddress = sanitizeEmailText(santeeAddress);
+    const sanitizedSanteeMessage = sanitizeEmailText(santeeMessage);
+    const sanitizedGroupUrl = sanitizeEmailText(groupUrl);
+    
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app';
+    const groupLink = `${baseUrl}/group/${sanitizedGroupUrl}`;
+    
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_SENDER_EMAIL,
+            Email: process.env.MAILJET_SENDER_EMAIL!,
             Name: 'Secret Santa',
           },
           To: [
             {
-              Email: toEmail,
-              Name: santaName,
+              Email: sanitizedToEmail,
+              Name: sanitizedSantaName,
             },
           ],
           Subject: 'Your Secret Santa Assignment',
-          TextPart: `Hello ${santaName}!
+          TextPart: `Hello ${sanitizedSantaName}!
 
 Your Secret Santa assignment is:
 
-Name: ${santeeName}
-Address: ${santeeAddress}
-Message: ${santeeMessage}
+Name: ${sanitizedSanteeName}
+Address: ${sanitizedSanteeAddress}
+Message: ${sanitizedSanteeMessage}
 
-View your group: ${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}`,
+View your group: ${groupLink}`,
           HTMLPart: `
-            <h2>Hello ${santaName}!</h2>
+            <h2>Hello ${sanitizedSantaName}!</h2>
             <p>Your Secret Santa assignment is:</p>
             <ul>
-              <li><strong>Name:</strong> ${santeeName}</li>
-              <li><strong>Address:</strong> ${santeeAddress}</li>
-              <li><strong>Message:</strong> ${santeeMessage}</li>
+              <li><strong>Name:</strong> ${sanitizedSanteeName}</li>
+              <li><strong>Address:</strong> ${sanitizedSanteeAddress}</li>
+              <li><strong>Message:</strong> ${sanitizedSanteeMessage}</li>
             </ul>
-            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}">View your group</a></p>
+            <p><a href="${groupLink}">View your group</a></p>
           `,
         },
       ],
@@ -64,18 +78,24 @@ export async function sendPasswordResetEmail(
   groupUrl: string
 ) {
   try {
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/group/${groupUrl}/reset?token=${resetToken}`;
+    // Sanitize user-provided content
+    const sanitizedToEmail = sanitizeEmailAddress(toEmail);
+    const sanitizedGroupUrl = sanitizeEmailText(groupUrl);
+    
+    // Token should already be safe (hex string), but sanitize groupUrl
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const resetUrl = `${baseUrl}/group/${sanitizedGroupUrl}/reset?token=${resetToken}`;
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_SENDER_EMAIL,
+            Email: process.env.MAILJET_SENDER_EMAIL!,
             Name: 'Secret Santa',
           },
           To: [
             {
-              Email: toEmail,
+              Email: sanitizedToEmail,
             },
           ],
           Subject: 'Reset Your Secret Santa Password',

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
+import { validateEmail } from '@/lib/utils/validation';
 
 /**
  * Join an existing Secret Santa group
@@ -48,13 +50,32 @@ export async function POST(
       );
     }
 
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return NextResponse.json(
+        { error: emailValidation.error || 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting (more lenient for joining)
+    const identifier = getClientIdentifier(request, email);
+    const rateLimit = checkRateLimit(identifier, { maxRequests: 20, windowMs: 60 * 60 * 1000 });
+    if (rateLimit.rateLimited) {
+      return NextResponse.json(
+        { error: 'Too many join attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const db = getDb();
 
     // Verify the group exists
     const group = dbHelpers.getGroupById(groupId);
     if (!group) {
       return NextResponse.json(
-        { error: 'Secret Santa group not found' },
+        { error: 'Group not found' },
         { status: 404 }
       );
     }
@@ -62,7 +83,7 @@ export async function POST(
     // Ensure the gift exchange hasn't started yet
     if (group.status !== 'pending') {
       return NextResponse.json(
-        { error: 'Cannot join: the Secret Santa gift exchange has already started' },
+        { error: 'Cannot join: the gift exchange has already started' },
         { status: 400 }
       );
     }
@@ -111,7 +132,7 @@ export async function POST(
   } catch (error) {
     console.error('Error joining group:', error);
     return NextResponse.json(
-      { error: 'Failed to join the Secret Santa group. Please try again.' },
+      { error: 'Unable to join the group. Please try again.' },
       { status: 500 }
     );
   }

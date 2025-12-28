@@ -3,6 +3,8 @@ import { getDb, dbHelpers } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { sendPasswordResetEmail } from '@/lib/email/mailjet';
+import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
+import { validateEmail } from '@/lib/utils/validation';
 
 export async function POST(
   request: NextRequest,
@@ -14,8 +16,27 @@ export async function POST(
 
     if (!email) {
       return NextResponse.json(
-        { error: 'Email required' },
+        { error: 'Email is required' },
         { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return NextResponse.json(
+        { error: emailValidation.error || 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting (more lenient for password reset)
+    const identifier = getClientIdentifier(request, email);
+    const rateLimit = checkRateLimit(identifier, { maxRequests: 5, windowMs: 60 * 60 * 1000 });
+    if (rateLimit.rateLimited) {
+      return NextResponse.json(
+        { error: 'Too many password reset requests. Please try again later.' },
+        { status: 429 }
       );
     }
 
@@ -31,6 +52,12 @@ export async function POST(
         { error: 'Group not found' },
         { status: 404 }
       );
+    }
+
+    // Check if member already has a valid reset token
+    if (member.password_reset_token && member.password_reset_expires && member.password_reset_expires > Date.now()) {
+      // Token already exists and is valid, don't send another email
+      return NextResponse.json({ success: true });
     }
 
     // Generate reset token
@@ -53,7 +80,7 @@ export async function POST(
   } catch (error) {
     console.error('Error requesting password reset:', error);
     return NextResponse.json(
-      { error: 'Failed to request password reset' },
+      { error: 'Unable to process password reset request. Please try again.' },
       { status: 500 }
     );
   }

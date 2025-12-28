@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Group, Member, Assignment, ShipmentConfirmation } from './schema';
+// Validate environment variables at startup
+import '@/lib/utils/env';
 
 // Handle DB_PATH - if it's a directory, append filename; if it's a file, use as-is
 const rawDbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'secretsanta.db');
