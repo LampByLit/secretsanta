@@ -28,36 +28,29 @@ export default function AssignmentDisplay({ groupId, slug }: AssignmentDisplayPr
     if (cookie) {
       const emailFromCookie = cookie.split('=')[1];
       setEmail(emailFromCookie);
-      loadAssignment(emailFromCookie);
+      // Password is required for API, so we need to show login form
+      // The cookie only stores email for convenience, not authentication
+      setShowLogin(true);
+      setLoading(false);
     } else {
       setShowLogin(true);
       setLoading(false);
     }
   }, [groupId]);
 
-  const loadAssignment = async (memberEmail: string) => {
-    try {
-      const response = await fetch(
-        `/api/groups/${groupId}/assignment?email=${encodeURIComponent(memberEmail)}&password=${encodeURIComponent(password)}`
-      );
+  const loadAssignment = async (memberEmail: string, memberPassword: string) => {
+    const response = await fetch(
+      `/api/groups/${groupId}/assignment?email=${encodeURIComponent(memberEmail)}&password=${encodeURIComponent(memberPassword)}`
+    );
 
-      if (!response.ok) {
-        const data = await response.json();
-        if (response.status === 401) {
-          setShowLogin(true);
-          setLoading(false);
-          return;
-        }
-        throw new Error(data.error || 'Failed to load assignment');
-      }
-
+    if (!response.ok) {
       const data = await response.json();
-      setAssignment(data);
-      setLoading(false);
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
+      throw new Error(data.error || 'Failed to load assignment');
     }
+
+    const data = await response.json();
+    setAssignment(data);
+    setLoading(false);
   };
 
   const handleLogin = async () => {
@@ -70,13 +63,14 @@ export default function AssignmentDisplay({ groupId, slug }: AssignmentDisplayPr
     setError('');
 
     try {
-      await loadAssignment(email);
-      if (assignment) {
-        document.cookie = `santa_member_${groupId}=${email}; path=/; max-age=31536000`;
-        setShowLogin(false);
-      }
+      await loadAssignment(email, password);
+      // Assignment loaded successfully - set cookie and hide login form
+      document.cookie = `santa_member_${groupId}=${email}; path=/; max-age=31536000`;
+      setShowLogin(false);
+      setError('');
     } catch (err: any) {
       setError(err.message);
+      setShowLogin(true); // Keep login form visible on error
     } finally {
       setLoading(false);
     }

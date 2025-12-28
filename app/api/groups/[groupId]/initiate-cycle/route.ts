@@ -12,11 +12,14 @@ export async function POST(
     const { groupId } = params;
     const { creatorEmail, creatorPassword } = await request.json();
 
+    console.log(`[Initiate Cycle] Starting cycle initiation for group ${groupId} by ${creatorEmail}`);
+
     const db = getDb();
     
     // Verify creator
     const group = dbHelpers.getGroupById(groupId);
     if (!group) {
+      console.error(`[Initiate Cycle] Group ${groupId} not found`);
       return NextResponse.json(
         { error: 'Group not found' },
         { status: 404 }
@@ -24,6 +27,7 @@ export async function POST(
     }
 
     if (group.creator_email !== creatorEmail) {
+      console.error(`[Initiate Cycle] Unauthorized: ${creatorEmail} is not the creator`);
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -32,6 +36,7 @@ export async function POST(
 
     // Check if already initiated
     if (group.status !== 'pending') {
+      console.log(`[Initiate Cycle] Group ${groupId} already initiated with status: ${group.status}`);
       return NextResponse.json(
         { error: 'Cycle already initiated' },
         { status: 400 }
@@ -40,8 +45,10 @@ export async function POST(
 
     // Get all non-excluded members
     const members = dbHelpers.getMembersByGroup(groupId, false);
+    console.log(`[Initiate Cycle] Found ${members.length} non-excluded members`);
     
     if (members.length < 4) {
+      console.error(`[Initiate Cycle] Insufficient members: ${members.length} < 4`);
       return NextResponse.json(
         { error: 'Need at least 4 members to start Secret Santa' },
         { status: 400 }
@@ -51,11 +58,15 @@ export async function POST(
     // Randomize order
     const shuffled = [...members].sort(() => Math.random() - 0.5);
     const chair = shuffled[shuffled.length - 1];
+    console.log(`[Initiate Cycle] Shuffled ${shuffled.length} members, chair is: ${chair.name}`);
 
     // Generate session key pair (chair's role)
+    console.log(`[Initiate Cycle] Generating session key pair...`);
     const sessionKeyPair = await generateKeyPair();
+    console.log(`[Initiate Cycle] Session key pair generated`);
 
     // Phase 1: Encrypt each member's public key with session public key
+    console.log(`[Initiate Cycle] Phase 1: Encrypting ${shuffled.length} public keys...`);
     const encryptedKeys: Array<{ memberId: string; encrypted: { c1: string; c2: string } }> = [];
     
     for (const member of shuffled) {
@@ -69,11 +80,14 @@ export async function POST(
         },
       });
     }
+    console.log(`[Initiate Cycle] Encrypted ${encryptedKeys.length} keys`);
 
     // Simulate chain passing (shuffle encrypted keys)
+    console.log(`[Initiate Cycle] Simulating chain passing (shuffling encrypted keys)...`);
     encryptedKeys.sort(() => Math.random() - 0.5);
 
     // Chair decrypts all keys
+    console.log(`[Initiate Cycle] Chair decrypting all keys...`);
     const decryptedKeys: Array<{ memberId: string; publicKey: BigInt }> = [];
     
     for (const item of encryptedKeys) {
@@ -87,8 +101,10 @@ export async function POST(
         publicKey: decrypted,
       });
     }
+    console.log(`[Initiate Cycle] Decrypted ${decryptedKeys.length} keys`);
 
     // Sort public keys numerically
+    console.log(`[Initiate Cycle] Sorting public keys numerically...`);
     decryptedKeys.sort((a, b) => {
       if (a.publicKey < b.publicKey) return -1;
       if (a.publicKey > b.publicKey) return 1;
@@ -96,6 +112,7 @@ export async function POST(
     });
 
     // Create cycle: key before yours = your Santa
+    console.log(`[Initiate Cycle] Creating assignments from sorted keys...`);
     const assignments: Array<{ santaId: string; santeeId: string }> = [];
     
     for (let i = 0; i < decryptedKeys.length; i++) {
@@ -104,8 +121,10 @@ export async function POST(
       const santeeId = decryptedKeys[santeeIndex].memberId;
       assignments.push({ santaId, santeeId });
     }
+    console.log(`[Initiate Cycle] Created ${assignments.length} assignments`);
 
     // Store assignments
+    console.log(`[Initiate Cycle] Storing ${assignments.length} assignments in database...`);
     const assignmentStmt = db.prepare(`
       INSERT INTO assignments (id, group_id, santa_id, santee_id, revealed, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -123,24 +142,50 @@ export async function POST(
         now
       );
     }
+    console.log(`[Initiate Cycle] Stored ${assignments.length} assignments successfully`);
 
     // Update group status
+    console.log(`[Initiate Cycle] Updating group status to 'cycle_initiated'...`);
     const updateStmt = db.prepare(`
       UPDATE groups SET status = ?, updated_at = ? WHERE id = ?
     `);
     updateStmt.run('cycle_initiated', now, groupId);
+    console.log(`[Initiate Cycle] Group status updated successfully`);
 
-    // Send emails to all members
+    // Send emails to all members (continue on failure)
+    console.log(`[Initiate Cycle] Sending assignment emails to ${assignments.length} members...`);
+    let emailSuccessCount = 0;
+    let emailFailureCount = 0;
+    
     for (const assignment of assignments) {
       const santa = members.find(m => m.id === assignment.santaId);
       const santee = members.find(m => m.id === assignment.santeeId);
       
       if (santa && santee) {
-        await sendAssignmentEmail(santa.email, santa.name, santee.name, santee.address, santee.message, group.unique_url);
+        try {
+          await sendAssignmentEmail(santa.email, santa.name, santee.name, santee.address, santee.message, group.unique_url);
+          emailSuccessCount++;
+          console.log(`[Initiate Cycle] ✓ Email sent successfully to ${santa.email} (${santa.name})`);
+        } catch (emailError: any) {
+          emailFailureCount++;
+          console.error(`[Initiate Cycle] ✗ Failed to send email to ${santa.email} (${santa.name}):`, emailError.message || emailError);
+          // Continue with next email even if this one fails
+        }
+      } else {
+        console.error(`[Initiate Cycle] ✗ Could not find santa or santee for assignment:`, { santaId: assignment.santaId, santeeId: assignment.santeeId });
+        emailFailureCount++;
       }
     }
+    
+    console.log(`[Initiate Cycle] Email sending complete: ${emailSuccessCount} succeeded, ${emailFailureCount} failed`);
+    console.log(`[Initiate Cycle] Cycle initiation completed successfully for group ${groupId}`);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      assignmentsCreated: assignments.length,
+      emailsSent: emailSuccessCount,
+      emailsFailed: emailFailureCount
+    });
   } catch (error) {
     console.error('Error initiating cycle:', error);
     return NextResponse.json(

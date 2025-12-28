@@ -18,7 +18,7 @@ export async function sendAssignmentEmail(
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_SENDER_EMAIL || 'noreply@secretsanta.app',
+            Email: process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com',
             Name: 'Secret Santa',
           },
           To: [
@@ -73,7 +73,7 @@ export async function sendPasswordResetEmail(
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_SENDER_EMAIL || 'noreply@secretsanta.app',
+            Email: process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com',
             Name: 'Secret Santa',
           },
           To: [
