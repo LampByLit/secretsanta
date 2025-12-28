@@ -77,28 +77,63 @@ export default function TestEmailPage() {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <h2 className="text-xl font-bold mb-4">Test Results</h2>
             
-            <div className="space-y-2 mb-4">
+            <div className="space-y-3 mb-4">
               <div>
                 <strong>Success:</strong> {result.success ? '✅ Yes' : '❌ No'}
               </div>
+              
+              {result.diagnosis && (
+                <div className={`p-4 rounded-lg ${
+                  result.diagnosis.includes('❌') ? 'bg-red-50 border border-red-200 text-red-800' :
+                  result.diagnosis.includes('✅') ? 'bg-green-50 border border-green-200 text-green-800' :
+                  'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                }`}>
+                  <strong>Diagnosis:</strong> {result.diagnosis}
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <strong>Sender Email:</strong> {result.senderEmail || 'N/A'}
+                </div>
+                <div>
+                  <strong>Sender Verified:</strong> {result.senderVerified ? '✅ Yes' : '❌ No'}
+                </div>
+              </div>
+              
+              {result.senderError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded text-sm">
+                  <strong>Sender Error:</strong> {result.senderError}
+                </div>
+              )}
+              
               {result.messageId && (
                 <div>
                   <strong>MessageID:</strong> {result.messageId}
                 </div>
               )}
-              {result.dashboardUrl && (
-                <div>
-                  <strong>Dashboard:</strong>{' '}
+              
+              {result.messageStatus && (
+                <div className="p-3 bg-gray-100 rounded">
+                  <strong>Message Status:</strong>
+                  <pre className="mt-2 text-xs overflow-auto">
+                    {JSON.stringify(result.messageStatus, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
+              <div className="flex gap-4">
+                {result.dashboardUrl && (
                   <a href={result.dashboardUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                    {result.dashboardUrl}
+                    View Message in MailJet →
                   </a>
-                </div>
-              )}
-              {result.note && (
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <strong>Note:</strong> {result.note}
-                </div>
-              )}
+                )}
+                {result.senderDashboardUrl && !result.senderVerified && (
+                  <a href={result.senderDashboardUrl} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline font-bold">
+                    ⚠️ Verify Sender Email →
+                  </a>
+                )}
+              </div>
             </div>
 
             <details className="mt-4">

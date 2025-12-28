@@ -41,37 +41,73 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Check sender verification status
+    const senderEmail = process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com';
+    let senderVerified = false;
+    let senderError = null;
+    
+    try {
+      const senderResult = await mailjet.get('sender').request({
+        Email: senderEmail,
+      });
+      senderVerified = true;
+      console.log(`[Test Email] Sender ${senderEmail} is verified`);
+    } catch (senderCheckError: any) {
+      senderVerified = false;
+      senderError = senderCheckError.message || 'Sender not found/verified';
+      console.log(`[Test Email] Sender ${senderEmail} is NOT verified: ${senderError}`);
+    }
+
     // Wait a moment for MailJet to process
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     // Check message status via MailJet API
+    let messageStatus = null;
+    let statusError = null;
+    
     try {
       const statusResult = await mailjet.get('message').request({
         ID: messageId,
       });
       
       const statusBody = statusResult.body as any;
-      const messageStatus = statusBody?.Data?.[0];
-      
-      return NextResponse.json({
-        success: true,
-        messageId,
-        mailjetResponse: body,
-        deliveryStatus: messageStatus || 'Status check failed',
-        dashboardUrl: `https://app.mailjet.com/statistics/message/${messageId}`,
-        note: 'Check the deliveryStatus field above. If Status is "sent" but email not received, sender email likely not verified.',
-      });
-    } catch (statusError: any) {
-      // Status check might fail, but email was sent
-      return NextResponse.json({
-        success: true,
-        messageId,
-        mailjetResponse: body,
-        statusCheckError: statusError.message,
-        dashboardUrl: `https://app.mailjet.com/statistics/message/${messageId}`,
-        note: 'Email sent. Check dashboard URL above for delivery status.',
-      });
+      messageStatus = statusBody?.Data?.[0];
+      console.log(`[Test Email] Message status:`, JSON.stringify(messageStatus, null, 2));
+    } catch (err: any) {
+      statusError = err.message || 'Failed to check message status';
+      console.log(`[Test Email] Status check error:`, statusError);
     }
+    
+    // Determine the issue
+    let diagnosis = '';
+    if (!senderVerified) {
+      diagnosis = `❌ SENDER EMAIL NOT VERIFIED: ${senderEmail} is not verified in MailJet. Emails will be accepted but NOT delivered. Go to https://app.mailjet.com/account/sender to verify it.`;
+    } else if (messageStatus) {
+      const state = messageStatus.State || messageStatus.Status;
+      if (state === 'sent' || state === 'opened') {
+        diagnosis = `✅ Email appears to be delivered (State: ${state}). Check spam folder or wait a few minutes.`;
+      } else if (state === 'bounced' || state === 'blocked') {
+        diagnosis = `❌ Email ${state}. Check MailJet dashboard for details.`;
+      } else {
+        diagnosis = `⚠️ Email status: ${state}. Check MailJet dashboard.`;
+      }
+    } else {
+      diagnosis = `⚠️ Could not check message status. Check MailJet dashboard manually.`;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      messageId,
+      senderEmail,
+      senderVerified,
+      senderError,
+      mailjetResponse: body,
+      messageStatus,
+      statusError,
+      dashboardUrl: `https://app.mailjet.com/statistics/message/${messageId}`,
+      senderDashboardUrl: `https://app.mailjet.com/account/sender`,
+      diagnosis,
+    });
   } catch (error: any) {
     console.error('[Test Email] Error:', error);
     return NextResponse.json({
