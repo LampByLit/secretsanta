@@ -95,9 +95,9 @@ export default function GroupPage() {
     const groupId = groupData.group.id;
     pollingRef.current.isActive = true;
     
-    console.log(`[Frontend Polling] Starting status polling for group ${groupId} (checking every 3 seconds)`);
+    console.log(`[Frontend Polling] Starting status polling for group ${groupId} (checking every 1 hour)`);
     
-    // Poll every 3 seconds to check if status changed to 'ready'
+    // Poll every 1 hour to check if status changed to 'ready'
     pollingRef.current.intervalId = setInterval(async () => {
       if (!pollingRef.current.isActive) return; // Stop if we're no longer polling
       
@@ -152,7 +152,7 @@ export default function GroupPage() {
         // Silently fail - don't spam console with errors
         console.error('Polling error:', err);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 3600000); // Poll every 1 hour (3600000ms)
 
     // Cleanup interval on unmount or when conditions change
     return () => {

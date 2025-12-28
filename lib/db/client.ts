@@ -286,17 +286,12 @@ export const dbHelpers = {
     const db = getDb();
     const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
     
-    console.log(`[checkBackfillStatus] Checking ${activeMembers.length} active members for group ${groupId}`);
-    activeMembers.forEach(m => console.log(`  - ${m.name} (${m.id}) - email: ${m.email}`));
-    
     if (activeMembers.length < 2) {
       // Need at least 2 members for bidirectional messages
-      console.log(`[checkBackfillStatus] Less than 2 members, backfill complete`);
       return { complete: true, missingMembers: [] };
     }
 
     const missingMembers = new Set<string>();
-    const missingMessages: Array<{ from: string; to: string }> = [];
     
     // Check all pairs for bidirectional messages
     for (let i = 0; i < activeMembers.length; i++) {
@@ -308,16 +303,12 @@ export const dbHelpers = {
         const msgAB = dbHelpers.getPreEncryptedMessage(groupId, memberA.id, memberB.id);
         if (!msgAB) {
           missingMembers.add(memberA.id);
-          missingMessages.push({ from: `${memberA.name} (${memberA.id})`, to: `${memberB.name} (${memberB.id})` });
-          console.log(`[checkBackfillStatus] ✗ Missing message: ${memberA.name} -> ${memberB.name}`);
         }
         
         // Check B -> A
         const msgBA = dbHelpers.getPreEncryptedMessage(groupId, memberB.id, memberA.id);
         if (!msgBA) {
           missingMembers.add(memberB.id);
-          missingMessages.push({ from: `${memberB.name} (${memberB.id})`, to: `${memberA.name} (${memberA.id})` });
-          console.log(`[checkBackfillStatus] ✗ Missing message: ${memberB.name} -> ${memberA.name}`);
         }
       }
     }
@@ -327,11 +318,7 @@ export const dbHelpers = {
       return { id, name: member?.name || 'Unknown' };
     });
 
-    if (missingMessages.length > 0) {
-      console.log(`[checkBackfillStatus] Total missing messages: ${missingMessages.length}`);
-      console.log(`[checkBackfillStatus] Members needing to complete backfill: ${missingMembersList.map(m => m.name).join(', ')}`);
-    }
-
+    // Removed verbose logging - status check function will log when status changes
     return {
       complete: missingMembers.size === 0,
       missingMembers: missingMembersList,
@@ -341,13 +328,13 @@ export const dbHelpers = {
   checkAndUpdateGroupStatus: (groupId: string): void => {
     const group = dbHelpers.getGroupById(groupId);
     if (!group) {
-      console.log(`[Status Check] Group ${groupId} not found`);
+      console.error(`[Status Check] Group ${groupId} not found`);
       return;
     }
     
     // Only transition from 'closed' to 'ready'
     if (group.status !== 'closed') {
-      console.log(`[Status Check] Group ${groupId} status is '${group.status}', skipping (only transition from 'closed')`);
+      // Don't log - this is expected when status is already 'ready' or other states
       return;
     }
     
@@ -355,21 +342,14 @@ export const dbHelpers = {
     const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
     const completedCount = activeMembers.length - backfillStatus.missingMembers.length;
     
-    console.log(`[Status Check] Group ${groupId}: Backfill status - ${completedCount}/${activeMembers.length} members complete`);
-    
-    if (backfillStatus.missingMembers.length > 0) {
-      console.log(`[Status Check] Group ${groupId}: Missing backfill from ${backfillStatus.missingMembers.length} member(s):`, 
-        backfillStatus.missingMembers.map(m => m.name).join(', '));
-    }
-    
+    // Only log when status actually changes (important event)
     if (backfillStatus.complete) {
       const db = getDb();
       const stmt = db.prepare('UPDATE groups SET status = ?, updated_at = ? WHERE id = ?');
       stmt.run('ready', Date.now(), groupId);
       console.log(`[Status Check] ✓ Group ${groupId} status transitioned from 'closed' to 'ready'! All ${activeMembers.length} members have completed backfill.`);
-    } else {
-      console.log(`[Status Check] Group ${groupId} not ready yet: ${completedCount}/${activeMembers.length} members complete`);
     }
+    // Removed routine "not ready yet" logs - they're too verbose and not useful
   },
 };
 

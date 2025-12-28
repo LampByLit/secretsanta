@@ -142,13 +142,12 @@ export async function POST(
 
     // Check if group should transition from 'closed' to 'ready'
     if (group.status === 'closed') {
-      console.log(`[Backfill] Checking if group ${groupId} should transition to 'ready' after storing ${created} new message(s)...`);
       const statusBefore = group.status;
       dbHelpers.checkAndUpdateGroupStatus(groupId);
       // Re-fetch to check if status changed
       const updatedGroup = dbHelpers.getGroupById(groupId);
       if (updatedGroup && updatedGroup.status !== statusBefore) {
-        console.log(`[Backfill] ✓ Group ${groupId} status changed from '${statusBefore}' to '${updatedGroup.status}'`);
+        console.log(`[Backfill] ✓ Group ${groupId} status changed from '${statusBefore}' to '${updatedGroup.status}' after storing ${created} message(s)`);
       }
     }
 
