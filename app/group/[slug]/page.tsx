@@ -79,18 +79,8 @@ export default function GroupPage() {
         .split('; ')
         .find(row => row.startsWith(`santa_member_${data.group.id}`));
       
-      if (memberCookie) {
-        const memberEmail = memberCookie.split('=')[1];
-        // Check if this email is in the members list
-        const userIsMember = data.allMembers.some(m => {
-          // We need to check by email, but we don't have email in the response
-          // So we'll check if there's a member cookie and assume they're a member
-          return true; // If cookie exists, they're a member
-        });
-        setIsMember(!!memberCookie);
-      } else {
-        setIsMember(false);
-      }
+      // If cookie exists, user has joined
+      setIsMember(!!memberCookie);
       
       // Load assignment if cycle initiated
       if (data.group.status !== 'pending') {
