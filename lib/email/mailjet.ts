@@ -64,7 +64,7 @@ export async function sendPasswordResetEmail(
   groupUrl: string
 ) {
   try {
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/group/${groupUrl}/reset?token=${resetToken}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}/reset?token=${resetToken}`;
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
