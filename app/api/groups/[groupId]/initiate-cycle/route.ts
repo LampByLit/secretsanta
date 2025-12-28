@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import { randomBytes } from 'crypto';
-import { generateKeyPair, encrypt, decrypt, P, G } from '@/lib/crypto/elgamal';
-import { sendAssignmentEmail } from '@/lib/email/mailjet';
+import { generateKeyPair, encrypt, decrypt, encodeMessage, P, G } from '@/lib/crypto/elgamal';
 
 export async function POST(
   request: NextRequest,
@@ -144,47 +143,70 @@ export async function POST(
     }
     console.log(`[Initiate Cycle] Stored ${assignments.length} assignments successfully`);
 
-    // Update group status
-    console.log(`[Initiate Cycle] Updating group status to 'cycle_initiated'...`);
-    const updateStmt = db.prepare(`
-      UPDATE groups SET status = ?, updated_at = ? WHERE id = ?
+    // Encrypt each santee's message with their santa's public key
+    console.log(`[Initiate Cycle] Encrypting messages for ${assignments.length} assignments...`);
+    const encryptedMessageStmt = db.prepare(`
+      INSERT INTO encrypted_messages (id, group_id, sender_id, santa_id, c1, c2, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    updateStmt.run('cycle_initiated', now, groupId);
-    console.log(`[Initiate Cycle] Group status updated successfully`);
 
-    // Send emails to all members (continue on failure)
-    console.log(`[Initiate Cycle] Sending assignment emails to ${assignments.length} members...`);
-    let emailSuccessCount = 0;
-    let emailFailureCount = 0;
-    
+    let encryptionSuccessCount = 0;
+    let encryptionFailureCount = 0;
+
     for (const assignment of assignments) {
       const santa = members.find(m => m.id === assignment.santaId);
       const santee = members.find(m => m.id === assignment.santeeId);
       
       if (santa && santee) {
         try {
-          await sendAssignmentEmail(santa.email, santa.name, santee.name, santee.address, santee.message, group.unique_url);
-          emailSuccessCount++;
-          console.log(`[Initiate Cycle] ✓ Email sent successfully to ${santa.email} (${santa.name})`);
-        } catch (emailError: any) {
-          emailFailureCount++;
-          console.error(`[Initiate Cycle] ✗ Failed to send email to ${santa.email} (${santa.name}):`, emailError.message || emailError);
-          // Continue with next email even if this one fails
+          // Encode santee's message (name, address, message) into bigint
+          const encodedMessage = encodeMessage(santee.name, santee.address, santee.message);
+          
+          // Encrypt with santa's public key
+          const santaPublicKey = BigInt(santa.public_key);
+          const encrypted = await encrypt(santaPublicKey, encodedMessage);
+          
+          // Store encrypted message
+          const encryptedMessageId = randomBytes(16).toString('hex');
+          encryptedMessageStmt.run(
+            encryptedMessageId,
+            groupId,
+            santee.id, // sender_id (the santee sending to their santa)
+            santa.id,  // santa_id (who can decrypt it)
+            encrypted.c1.toString(),
+            encrypted.c2.toString(),
+            now
+          );
+          
+          encryptionSuccessCount++;
+          console.log(`[Initiate Cycle] ✓ Encrypted message for ${santa.name} (from ${santee.name})`);
+        } catch (encryptionError: any) {
+          encryptionFailureCount++;
+          console.error(`[Initiate Cycle] ✗ Failed to encrypt message for ${santa.name}:`, encryptionError.message || encryptionError);
+          // Continue with next message even if this one fails
         }
       } else {
         console.error(`[Initiate Cycle] ✗ Could not find santa or santee for assignment:`, { santaId: assignment.santaId, santeeId: assignment.santeeId });
-        emailFailureCount++;
+        encryptionFailureCount++;
       }
     }
     
-    console.log(`[Initiate Cycle] Email sending complete: ${emailSuccessCount} succeeded, ${emailFailureCount} failed`);
+    console.log(`[Initiate Cycle] Message encryption complete: ${encryptionSuccessCount} succeeded, ${encryptionFailureCount} failed`);
+
+    // Update group status to messages_ready
+    console.log(`[Initiate Cycle] Updating group status to 'messages_ready'...`);
+    const updateStmt = db.prepare(`
+      UPDATE groups SET status = ?, updated_at = ? WHERE id = ?
+    `);
+    updateStmt.run('messages_ready', now, groupId);
+    console.log(`[Initiate Cycle] Group status updated successfully`);
     console.log(`[Initiate Cycle] Cycle initiation completed successfully for group ${groupId}`);
 
     return NextResponse.json({ 
       success: true,
       assignmentsCreated: assignments.length,
-      emailsSent: emailSuccessCount,
-      emailsFailed: emailFailureCount
+      messagesEncrypted: encryptionSuccessCount,
+      messagesFailed: encryptionFailureCount
     });
   } catch (error) {
     console.error('Error initiating cycle:', error);

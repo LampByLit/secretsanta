@@ -50,6 +50,13 @@ export async function GET(
       shipmentCount = dbHelpers.getShipmentCount(groupId);
     }
 
+    // Get decryption count if messages are ready
+    let decryptionCount = 0;
+    let totalMembers = visibleMembers.length;
+    if (group.status === 'messages_ready' || group.status === 'complete') {
+      decryptionCount = dbHelpers.getDecryptionCount(groupId);
+    }
+
     return NextResponse.json({
       group: {
         id: group.id,
@@ -69,6 +76,8 @@ export async function GET(
       })),
       memberCount: visibleMembers.length,
       shipmentCount,
+      decryptionCount,
+      totalMembers,
       isMember, // Whether the checked email is actually a member (fledged)
       loggedInUserName, // Name of the logged in user (if checkEmail provided)
       shipmentConfirmed, // Whether logged in user has confirmed shipment

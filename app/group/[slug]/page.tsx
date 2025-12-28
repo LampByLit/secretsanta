@@ -23,6 +23,8 @@ interface GroupData {
   allMembers: Member[];
   memberCount: number;
   shipmentCount: number;
+  decryptionCount?: number;
+  totalMembers?: number;
   isMember?: boolean; // Whether current user is actually a member (fledged)
   loggedInUserName?: string | null; // Name of logged in user
   shipmentConfirmed?: boolean; // Whether logged in user has confirmed shipment
@@ -250,15 +252,22 @@ export default function GroupPage() {
               Members: {groupData.memberCount}
             </h2>
             {groupData.group.status !== 'pending' && (
-              <div className="flex items-center gap-2">
-                <div className="text-lg font-semibold text-green-600">
-                  Gifts Confirmed Shipped: {groupData.shipmentCount} / {groupData.memberCount}
-                </div>
-                {groupData.shipmentCount === groupData.memberCount && groupData.memberCount > 0 && (
-                  <span className="px-3 py-1 text-sm font-bold text-red-600 border-2 border-red-600 rounded">
-                    COMPLETE
-                  </span>
+              <div className="flex flex-col items-end gap-2">
+                {(groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && groupData.decryptionCount !== undefined && groupData.totalMembers !== undefined && (
+                  <div className="text-lg font-semibold text-blue-600">
+                    {groupData.decryptionCount} / {groupData.totalMembers} Members Have Viewed Their Assignment
+                  </div>
                 )}
+                <div className="flex items-center gap-2">
+                  <div className="text-lg font-semibold text-green-600">
+                    Gifts Confirmed Shipped: {groupData.shipmentCount} / {groupData.memberCount}
+                  </div>
+                  {groupData.shipmentCount === groupData.memberCount && groupData.memberCount > 0 && (
+                    <span className="px-3 py-1 text-sm font-bold text-red-600 border-2 border-red-600 rounded">
+                      COMPLETE
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -416,6 +425,7 @@ export default function GroupPage() {
                 <AssignmentDisplay 
                   groupId={groupData.group.id} 
                   slug={slug}
+                  groupStatus={groupData.group.status}
                   initialShipmentConfirmed={groupData.shipmentConfirmed || false}
                 />
               )}

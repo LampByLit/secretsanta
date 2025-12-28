@@ -4,7 +4,7 @@ export interface Group {
   creator_email: string;
   creator_password_hash: string;
   unique_url: string;
-  status: 'pending' | 'cycle_initiated' | 'complete';
+  status: 'pending' | 'cycle_initiated' | 'messages_ready' | 'complete';
   created_at: number;
   updated_at: number;
 }
@@ -31,6 +31,17 @@ export interface Assignment {
   santa_id: string;
   santee_id: string;
   revealed: boolean;
+  created_at: number;
+  decrypted_at: number | null;
+}
+
+export interface EncryptedMessage {
+  id: string;
+  group_id: string;
+  sender_id: string;
+  santa_id: string;
+  c1: string;
+  c2: string;
   created_at: number;
 }
 

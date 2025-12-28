@@ -112,12 +112,39 @@ function initializeSchema(database: Database.Database) {
     )
   `);
 
+  // Encrypted messages table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS encrypted_messages (
+      id TEXT PRIMARY KEY,
+      group_id TEXT NOT NULL,
+      sender_id TEXT NOT NULL,
+      santa_id TEXT NOT NULL,
+      c1 TEXT NOT NULL,
+      c2 TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+      FOREIGN KEY (sender_id) REFERENCES members(id) ON DELETE CASCADE,
+      FOREIGN KEY (santa_id) REFERENCES members(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Add decrypted_at column to assignments if it doesn't exist
+  try {
+    database.exec(`ALTER TABLE assignments ADD COLUMN decrypted_at INTEGER`);
+  } catch (e: any) {
+    // Column already exists, ignore error
+    if (!e.message.includes('duplicate column')) {
+      throw e;
+    }
+  }
+
   // Indexes
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_members_group ON members(group_id);
     CREATE INDEX IF NOT EXISTS idx_assignments_group ON assignments(group_id);
     CREATE INDEX IF NOT EXISTS idx_assignments_santa ON assignments(santa_id);
     CREATE INDEX IF NOT EXISTS idx_shipments_group ON shipment_confirmations(group_id);
+    CREATE INDEX IF NOT EXISTS idx_encrypted_messages_group ON encrypted_messages(group_id);
   `);
 }
 
@@ -160,6 +187,32 @@ export const dbHelpers = {
     const stmt = db.prepare('SELECT COUNT(*) as count FROM shipment_confirmations WHERE group_id = ?');
     const result = stmt.get(groupId) as { count: number };
     return result.count;
+  },
+
+  getEncryptedMessages: (groupId: string): Array<{ c1: string; c2: string }> => {
+    const db = getDb();
+    const stmt = db.prepare('SELECT c1, c2 FROM encrypted_messages WHERE group_id = ?');
+    return stmt.all(groupId) as Array<{ c1: string; c2: string }>;
+  },
+
+  getDecryptionCount: (groupId: string): number => {
+    const db = getDb();
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM assignments WHERE group_id = ? AND decrypted_at IS NOT NULL');
+    const result = stmt.get(groupId) as { count: number };
+    return result.count;
+  },
+
+  markAssignmentDecrypted: (groupId: string, santaId: string): void => {
+    const db = getDb();
+    const stmt = db.prepare('UPDATE assignments SET decrypted_at = ? WHERE group_id = ? AND santa_id = ? AND decrypted_at IS NULL');
+    stmt.run(Date.now(), groupId, santaId);
+  },
+
+  isAssignmentDecrypted: (groupId: string, santaId: string): boolean => {
+    const db = getDb();
+    const stmt = db.prepare('SELECT decrypted_at FROM assignments WHERE group_id = ? AND santa_id = ?');
+    const result = stmt.get(groupId, santaId) as { decrypted_at: number | null } | undefined;
+    return result ? result.decrypted_at !== null : false;
   },
 };
 

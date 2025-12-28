@@ -106,5 +106,122 @@ export async function isQuadraticResidue(n: bigint): Promise<boolean> {
   return result === BigInt(1);
 }
 
+/**
+ * Encode a message (name, address, message) into a bigint for ElGamal encryption
+ * Format: [nameLength][name][addressLength][address][messageLength][message]
+ * All lengths are 4-byte big-endian integers
+ */
+export function encodeMessage(name: string, address: string, message: string): bigint {
+  const encoder = new TextEncoder();
+  const nameBytes = encoder.encode(name);
+  const addressBytes = encoder.encode(address);
+  const messageBytes = encoder.encode(message);
+  
+  // Check total size - ensure it fits in P (which is ~309 digits, so ~1024 bits)
+  // We have ~1024 bits = 128 bytes, but we need some overhead for encoding
+  // Let's be conservative and limit to ~100 bytes total
+  const totalBytes = 4 + nameBytes.length + 4 + addressBytes.length + 4 + messageBytes.length;
+  if (totalBytes > 100) {
+    throw new Error(`Message too large: ${totalBytes} bytes (max 100)`);
+  }
+  
+  // Create buffer with length prefixes
+  const buffer = new Uint8Array(totalBytes);
+  let offset = 0;
+  
+  // Write name length (4 bytes, big-endian)
+  const nameLength = nameBytes.length;
+  buffer[offset++] = (nameLength >> 24) & 0xff;
+  buffer[offset++] = (nameLength >> 16) & 0xff;
+  buffer[offset++] = (nameLength >> 8) & 0xff;
+  buffer[offset++] = nameLength & 0xff;
+  
+  // Write name bytes
+  buffer.set(nameBytes, offset);
+  offset += nameBytes.length;
+  
+  // Write address length (4 bytes, big-endian)
+  const addressLength = addressBytes.length;
+  buffer[offset++] = (addressLength >> 24) & 0xff;
+  buffer[offset++] = (addressLength >> 16) & 0xff;
+  buffer[offset++] = (addressLength >> 8) & 0xff;
+  buffer[offset++] = addressLength & 0xff;
+  
+  // Write address bytes
+  buffer.set(addressBytes, offset);
+  offset += addressBytes.length;
+  
+  // Write message length (4 bytes, big-endian)
+  const messageLength = messageBytes.length;
+  buffer[offset++] = (messageLength >> 24) & 0xff;
+  buffer[offset++] = (messageLength >> 16) & 0xff;
+  buffer[offset++] = (messageLength >> 8) & 0xff;
+  buffer[offset++] = messageLength & 0xff;
+  
+  // Write message bytes
+  buffer.set(messageBytes, offset);
+  
+  // Convert to bigint
+  let result = BigInt(0);
+  for (let i = 0; i < buffer.length; i++) {
+    result = result * BigInt(256) + BigInt(buffer[i]);
+  }
+  
+  // Ensure result is less than P
+  if (result >= P) {
+    throw new Error(`Encoded message too large: ${result} >= ${P}`);
+  }
+  
+  return result;
+}
+
+/**
+ * Decode a bigint back into name, address, and message
+ */
+export function decodeMessage(encoded: bigint): { name: string; address: string; message: string } {
+  // Convert bigint to bytes
+  const bytes: number[] = [];
+  let num = encoded;
+  
+  while (num > 0) {
+    bytes.unshift(Number(num % BigInt(256)));
+    num = num / BigInt(256);
+  }
+  
+  // Read name length (4 bytes, big-endian)
+  if (bytes.length < 4) throw new Error('Invalid encoded message: too short');
+  const nameLength = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+  
+  // Read name
+  if (bytes.length < 4 + nameLength) throw new Error('Invalid encoded message: name truncated');
+  const nameBytes = bytes.slice(4, 4 + nameLength);
+  const decoder = new TextDecoder();
+  const name = decoder.decode(new Uint8Array(nameBytes));
+  
+  // Read address length
+  let offset = 4 + nameLength;
+  if (bytes.length < offset + 4) throw new Error('Invalid encoded message: address length missing');
+  const addressLength = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+  
+  // Read address
+  offset += 4;
+  if (bytes.length < offset + addressLength) throw new Error('Invalid encoded message: address truncated');
+  const addressBytes = bytes.slice(offset, offset + addressLength);
+  const address = decoder.decode(new Uint8Array(addressBytes));
+  
+  // Read message length
+  offset += addressLength;
+  if (bytes.length < offset + 4) throw new Error('Invalid encoded message: message length missing');
+  const messageLength = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+  
+  // Read message
+  offset += 4;
+  if (bytes.length < offset + messageLength) throw new Error('Invalid encoded message: message truncated');
+  const messageBytes = bytes.slice(offset, offset + messageLength);
+  const message = decoder.decode(new Uint8Array(messageBytes));
+  
+  return { name, address, message };
+}
+
 export { P, G };
 
