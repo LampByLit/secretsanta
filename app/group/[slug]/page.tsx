@@ -352,11 +352,6 @@ export default function GroupPage() {
                       ? 'CLOSE GROUP (Stop Accepting New Members)'
                       : `Need ${4 - groupData.memberCount} more member(s) to close group`}
                   </button>
-                  {groupData.memberCount < 4 && (
-                    <p className="text-sm text-gray-600 mb-4 text-center">
-                      Groups must have at least 4 members before they can be closed.
-                    </p>
-                  )}
                 </>
               )}
             </>
