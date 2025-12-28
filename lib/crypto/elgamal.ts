@@ -107,6 +107,33 @@ export async function isQuadraticResidue(n: bigint): Promise<boolean> {
 }
 
 /**
+ * Calculate the byte size of a message when encoded
+ * Returns breakdown of sizes for each field
+ */
+export function calculateMessageSize(name: string, address: string, message: string): {
+  nameBytes: number;
+  addressBytes: number;
+  messageBytes: number;
+  overheadBytes: number;
+  totalBytes: number;
+} {
+  const encoder = new TextEncoder();
+  const nameBytes = encoder.encode(name).length;
+  const addressBytes = encoder.encode(address).length;
+  const messageBytes = encoder.encode(message).length;
+  const overheadBytes = 12; // 3 length fields × 4 bytes each
+  const totalBytes = overheadBytes + nameBytes + addressBytes + messageBytes;
+  
+  return {
+    nameBytes,
+    addressBytes,
+    messageBytes,
+    overheadBytes,
+    totalBytes,
+  };
+}
+
+/**
  * Encode a message (name, address, message) into a bigint for ElGamal encryption
  * Format: [nameLength][name][addressLength][address][messageLength][message]
  * All lengths are 4-byte big-endian integers
@@ -122,7 +149,38 @@ export function encodeMessage(name: string, address: string, message: string): b
   // Let's be conservative and limit to ~100 bytes total
   const totalBytes = 4 + nameBytes.length + 4 + addressBytes.length + 4 + messageBytes.length;
   if (totalBytes > 100) {
-    throw new Error(`Message too large: ${totalBytes} bytes (max 100)`);
+    // Provide detailed error message indicating which fields are too long
+    const sizeInfo = calculateMessageSize(name, address, message);
+    const maxUsableBytes = 100 - sizeInfo.overheadBytes;
+    const usedBytes = sizeInfo.nameBytes + sizeInfo.addressBytes + sizeInfo.messageBytes;
+    const overBy = usedBytes - maxUsableBytes;
+    
+    const fieldSizes = [
+      { field: 'name', bytes: sizeInfo.nameBytes },
+      { field: 'address', bytes: sizeInfo.addressBytes },
+      { field: 'message', bytes: sizeInfo.messageBytes },
+    ].sort((a, b) => b.bytes - a.bytes); // Sort by size descending
+    
+    const suggestions: string[] = [];
+    if (sizeInfo.nameBytes > 30) {
+      suggestions.push(`Name (${sizeInfo.nameBytes} bytes) - consider shortening`);
+    }
+    if (sizeInfo.addressBytes > 50) {
+      suggestions.push(`Address (${sizeInfo.addressBytes} bytes) - consider using abbreviations or shorter format`);
+    }
+    if (sizeInfo.messageBytes > 30) {
+      suggestions.push(`Message (${sizeInfo.messageBytes} bytes) - consider shortening`);
+    }
+    
+    const suggestionText = suggestions.length > 0 
+      ? `\n\nSuggestions:\n${suggestions.map(s => `  • ${s}`).join('\n')}`
+      : '';
+    
+    throw new Error(
+      `Total message size (${totalBytes} bytes) exceeds limit of 100 bytes (over by ${overBy} bytes). ` +
+      `Breakdown: Name=${sizeInfo.nameBytes} bytes, Address=${sizeInfo.addressBytes} bytes, Message=${sizeInfo.messageBytes} bytes.` +
+      suggestionText
+    );
   }
   
   // Create buffer with length prefixes

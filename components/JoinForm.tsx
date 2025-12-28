@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { encryptPrivateKey, encryptMemberData } from '@/lib/crypto/aes';
-import { generateKeyPair, encrypt, encodeMessage } from '@/lib/crypto/elgamal';
+import { generateKeyPair, encrypt, encodeMessage, calculateMessageSize } from '@/lib/crypto/elgamal';
 
 /**
  * Props for the JoinForm component
@@ -48,6 +48,64 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Calculate message size for validation feedback
+  const messageSize = useMemo(() => {
+    if (!formData.name && !formData.address && !formData.message) {
+      return null;
+    }
+    try {
+      return calculateMessageSize(
+        formData.name || '',
+        formData.address || '',
+        formData.message || ''
+      );
+    } catch {
+      return null;
+    }
+  }, [formData.name, formData.address, formData.message]);
+
+  // Check if message is approaching or exceeding limit
+  const sizeWarning = useMemo(() => {
+    if (!messageSize) return null;
+    
+    const maxBytes = 100;
+    const overheadBytes = 12;
+    const maxUsableBytes = maxBytes - overheadBytes;
+    const usedBytes = messageSize.nameBytes + messageSize.addressBytes + messageSize.messageBytes;
+    const remainingBytes = maxUsableBytes - usedBytes;
+    const percentageUsed = (usedBytes / maxUsableBytes) * 100;
+    
+    if (usedBytes > maxUsableBytes) {
+      return {
+        type: 'error' as const,
+        message: `Total size exceeds limit by ${usedBytes - maxUsableBytes} bytes. Please shorten your entries.`,
+        remainingBytes: 0,
+        percentageUsed: 100,
+      };
+    } else if (percentageUsed >= 90) {
+      return {
+        type: 'error' as const,
+        message: `Very close to limit (${usedBytes}/${maxUsableBytes} bytes used). Please shorten your entries.`,
+        remainingBytes,
+        percentageUsed,
+      };
+    } else if (percentageUsed >= 75) {
+      return {
+        type: 'warning' as const,
+        message: `Approaching limit (${usedBytes}/${maxUsableBytes} bytes used, ${remainingBytes} bytes remaining)`,
+        remainingBytes,
+        percentageUsed,
+      };
+    } else {
+      return {
+        type: 'info' as const,
+        message: `${usedBytes}/${maxUsableBytes} bytes used (${remainingBytes} bytes remaining)`,
+        remainingBytes,
+        percentageUsed,
+      };
+    }
+  }, [messageSize]);
 
   /**
    * Compute SHA-256 hash of email for database lookups
@@ -109,6 +167,26 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
       }
       const publicKeysData = await publicKeysResponse.json();
       const existingPublicKeys = publicKeysData.publicKeys || [];
+
+      // Validate message size before attempting encoding
+      const sizeCheck = calculateMessageSize(formData.name, formData.address, formData.message);
+      if (sizeCheck.totalBytes > 100) {
+        const overBy = sizeCheck.totalBytes - 100;
+        const suggestions: string[] = [];
+        if (sizeCheck.nameBytes > 30) {
+          suggestions.push(`Shorten name (currently ${sizeCheck.nameBytes} bytes)`);
+        }
+        if (sizeCheck.addressBytes > 50) {
+          suggestions.push(`Shorten address (currently ${sizeCheck.addressBytes} bytes) - use abbreviations if needed`);
+        }
+        if (sizeCheck.messageBytes > 30) {
+          suggestions.push(`Shorten message (currently ${sizeCheck.messageBytes} bytes)`);
+        }
+        throw new Error(
+          `Total message size (${sizeCheck.totalBytes} bytes) exceeds the 100 byte limit by ${overBy} bytes. ` +
+          `Please shorten your entries. ${suggestions.length > 0 ? suggestions.join('. ') : ''}`
+        );
+      }
 
       // Pre-encrypt this member's data with each existing member's public key
       // This allows cycle initiation to work without decrypting member data server-side
@@ -190,6 +268,11 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            {messageSize && (
+              <p className="mt-1 text-xs text-gray-500">
+                Name: {messageSize.nameBytes} bytes
+              </p>
+            )}
           </div>
 
           <div>
@@ -249,8 +332,21 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                sizeWarning?.type === 'error' ? 'border-red-500' : 
+                sizeWarning?.type === 'warning' ? 'border-yellow-500' : 
+                'border-gray-300'
+              }`}
+              placeholder="Keep address concise (e.g., '123 Main St, City, State ZIP')"
             />
+            {messageSize && (
+              <p className={`mt-1 text-xs ${
+                messageSize.addressBytes > 50 ? 'text-red-600 font-medium' : 'text-gray-500'
+              }`}>
+                Address: {messageSize.addressBytes} bytes
+                {messageSize.addressBytes > 50 && ' (consider using abbreviations)'}
+              </p>
+            )}
           </div>
 
           <div>
@@ -262,9 +358,58 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                sizeWarning?.type === 'error' ? 'border-red-500' : 
+                sizeWarning?.type === 'warning' ? 'border-yellow-500' : 
+                'border-gray-300'
+              }`}
+              placeholder="Keep message brief"
             />
+            {messageSize && (
+              <p className={`mt-1 text-xs ${
+                messageSize.messageBytes > 30 ? 'text-red-600 font-medium' : 'text-gray-500'
+              }`}>
+                Message: {messageSize.messageBytes} bytes
+              </p>
+            )}
           </div>
+
+          {/* Size warning/error display */}
+          {sizeWarning && messageSize && (
+            <div className={`px-4 py-3 rounded-lg border ${
+              sizeWarning.type === 'error' 
+                ? 'bg-red-50 border-red-200 text-red-700' 
+                : sizeWarning.type === 'warning'
+                ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                : 'bg-blue-50 border-blue-200 text-blue-700'
+            }`}>
+              <div className="flex items-start gap-2">
+                <span className="font-semibold">
+                  {sizeWarning.type === 'error' ? '⚠️' : sizeWarning.type === 'warning' ? '⚠️' : 'ℹ️'}
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium mb-1">{sizeWarning.message}</p>
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all ${
+                          sizeWarning.type === 'error' 
+                            ? 'bg-red-600' 
+                            : sizeWarning.type === 'warning'
+                            ? 'bg-yellow-600'
+                            : 'bg-blue-600'
+                        }`}
+                        style={{ width: `${Math.min(sizeWarning.percentageUsed, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs mt-1">
+                      Breakdown: Name ({messageSize.nameBytes} bytes) + Address ({messageSize.addressBytes} bytes) + Message ({messageSize.messageBytes} bytes) + Overhead ({messageSize.overheadBytes} bytes) = {messageSize.totalBytes} bytes total
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
