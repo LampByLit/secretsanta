@@ -56,6 +56,13 @@ View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
     });
 
     console.log(`[MailJet] Email sent successfully. Response:`, JSON.stringify(result.body, null, 2));
+    
+    // Note: MailJet "success" means the email was accepted, not necessarily delivered
+    // If emails aren't being received, check:
+    // 1. Sender email is verified in MailJet dashboard (Account Settings → Sender & Domains)
+    // 2. Check spam folder
+    // 3. For disposable emails (like yopmail), there may be delays or filtering
+    
     return result;
   } catch (error: any) {
     console.error(`[MailJet] Error sending email to ${toEmail}:`, error.message || error);
