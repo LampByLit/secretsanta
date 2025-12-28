@@ -20,10 +20,12 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
     setError('');
 
     try {
-      // Try to fetch assignment to verify credentials
-      const response = await fetch(
-        `/api/groups/${groupId}/assignment?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-      );
+      // Verify member credentials (doesn't require assignment to exist)
+      const response = await fetch(`/api/groups/${groupId}/verify-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (!response.ok) {
         const data = await response.json();
