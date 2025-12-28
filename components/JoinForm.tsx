@@ -259,7 +259,7 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white p-6 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
         <h2 className="text-2xl font-bold mb-4">Join Secret Santa Group</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
