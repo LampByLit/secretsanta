@@ -5,6 +5,11 @@ import { Group, Member, Assignment, ShipmentConfirmation } from './schema';
 
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'data', 'secretsanta.db');
 
+// Log database path on module load (for debugging)
+if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
+  console.log(`Database path configured as: ${DB_PATH}`);
+}
+
 let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
