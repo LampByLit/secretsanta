@@ -48,6 +48,7 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showByteTooltip, setShowByteTooltip] = useState(false);
 
   // Calculate message size for validation feedback
   const messageSize = useMemo(() => {
@@ -68,14 +69,14 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
   // Check if message is approaching or exceeding limit
   const sizeWarning = useMemo(() => {
     if (!messageSize) return null;
-    
+
     const maxBytes = 100;
     const overheadBytes = 12;
     const maxUsableBytes = maxBytes - overheadBytes;
     const usedBytes = messageSize.nameBytes + messageSize.addressBytes + messageSize.messageBytes;
     const remainingBytes = maxUsableBytes - usedBytes;
     const percentageUsed = (usedBytes / maxUsableBytes) * 100;
-    
+
     if (usedBytes > maxUsableBytes) {
       return {
         type: 'error' as const,
@@ -106,6 +107,11 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
       };
     }
   }, [messageSize]);
+
+  // Show tooltip when any relevant field has content or is focused
+  const shouldShowByteTooltip = useMemo(() => {
+    return showByteTooltip || !!formData.name || !!formData.address || !!formData.message;
+  }, [showByteTooltip, formData.name, formData.address, formData.message]);
 
   /**
    * Compute SHA-256 hash of email for database lookups
@@ -266,13 +272,10 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onFocus={() => setShowByteTooltip(true)}
+              onBlur={() => setShowByteTooltip(false)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
-            {messageSize && (
-              <p className="mt-1 text-xs text-gray-500">
-                Name: {messageSize.nameBytes} bytes
-              </p>
-            )}
           </div>
 
           <div>
@@ -331,22 +334,16 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               required
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onFocus={() => setShowByteTooltip(true)}
+              onBlur={() => setShowByteTooltip(false)}
               rows={3}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                sizeWarning?.type === 'error' ? 'border-red-500' : 
-                sizeWarning?.type === 'warning' ? 'border-yellow-500' : 
+                sizeWarning?.type === 'error' ? 'border-red-500' :
+                sizeWarning?.type === 'warning' ? 'border-yellow-500' :
                 'border-gray-300'
               }`}
               placeholder="Keep address concise (e.g., '123 Main St, City, State ZIP')"
             />
-            {messageSize && (
-              <p className={`mt-1 text-xs ${
-                messageSize.addressBytes > 50 ? 'text-red-600 font-medium' : 'text-gray-500'
-              }`}>
-                Address: {messageSize.addressBytes} bytes
-                {messageSize.addressBytes > 50 && ' (consider using abbreviations)'}
-              </p>
-            )}
           </div>
 
           <div>
@@ -357,55 +354,49 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               required
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+              onFocus={() => setShowByteTooltip(true)}
+              onBlur={() => setShowByteTooltip(false)}
               rows={3}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                sizeWarning?.type === 'error' ? 'border-red-500' : 
-                sizeWarning?.type === 'warning' ? 'border-yellow-500' : 
+                sizeWarning?.type === 'error' ? 'border-red-500' :
+                sizeWarning?.type === 'warning' ? 'border-yellow-500' :
                 'border-gray-300'
               }`}
               placeholder="Keep message brief"
             />
-            {messageSize && (
-              <p className={`mt-1 text-xs ${
-                messageSize.messageBytes > 30 ? 'text-red-600 font-medium' : 'text-gray-500'
-              }`}>
-                Message: {messageSize.messageBytes} bytes
-              </p>
-            )}
           </div>
 
-          {/* Size warning/error display */}
-          {sizeWarning && messageSize && (
-            <div className={`px-4 py-3 rounded-lg border ${
-              sizeWarning.type === 'error' 
-                ? 'bg-red-50 border-red-200 text-red-700' 
-                : sizeWarning.type === 'warning'
-                ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
-                : 'bg-blue-50 border-blue-200 text-blue-700'
-            }`}>
-              <div className="flex items-start gap-2">
-                <span className="font-semibold">
-                  {sizeWarning.type === 'error' ? '⚠️' : sizeWarning.type === 'warning' ? '⚠️' : 'ℹ️'}
-                </span>
-                <div className="flex-1">
-                  <p className="font-medium mb-1">{sizeWarning.message}</p>
-                  <div className="mt-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${
-                          sizeWarning.type === 'error' 
-                            ? 'bg-red-600' 
-                            : sizeWarning.type === 'warning'
-                            ? 'bg-yellow-600'
-                            : 'bg-blue-600'
-                        }`}
-                        style={{ width: `${Math.min(sizeWarning.percentageUsed, 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs mt-1">
-                      Breakdown: Name ({messageSize.nameBytes} bytes) + Address ({messageSize.addressBytes} bytes) + Message ({messageSize.messageBytes} bytes) + Overhead ({messageSize.overheadBytes} bytes) = {messageSize.totalBytes} bytes total
-                    </p>
-                  </div>
+
+          {/* Floating byte counter tooltip */}
+          {shouldShowByteTooltip && sizeWarning && messageSize && (
+            <div className="fixed z-60 bottom-4 left-1/2 transform -translate-x-1/2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 max-w-sm w-full mx-4 sm:mx-0 sm:max-w-xs">
+              <div className={`text-sm ${
+                sizeWarning.type === 'error'
+                  ? 'text-red-700'
+                  : sizeWarning.type === 'warning'
+                  ? 'text-yellow-700'
+                  : 'text-blue-700'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-semibold">
+                    {sizeWarning.type === 'error' ? '⚠️' : sizeWarning.type === 'warning' ? '⚠️' : 'ℹ️'}
+                  </span>
+                  <span className="font-medium">{sizeWarning.message}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      sizeWarning.type === 'error'
+                        ? 'bg-red-600'
+                        : sizeWarning.type === 'warning'
+                        ? 'bg-yellow-600'
+                        : 'bg-blue-600'
+                    }`}
+                    style={{ width: `${Math.min(sizeWarning.percentageUsed, 100)}%` }}
+                  />
+                </div>
+                <div className="text-xs text-gray-600">
+                  Name: {messageSize.nameBytes} | Address: {messageSize.addressBytes} | Message: {messageSize.messageBytes} | Total: {messageSize.totalBytes}/100 bytes
                 </div>
               </div>
             </div>
