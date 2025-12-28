@@ -32,8 +32,15 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
         throw new Error(data.error || 'Invalid email or password');
       }
 
-      // Store session cookie
+      const data = await response.json();
+      
+      // Store member session cookie
       document.cookie = `santa_member_${groupId}=${email}; path=/; max-age=31536000`;
+      
+      // If this is the creator, also set creator cookie
+      if (data.isCreator) {
+        document.cookie = `santa_creator_${groupId}=${email}; path=/; max-age=31536000`;
+      }
 
       onSuccess();
     } catch (err: any) {
