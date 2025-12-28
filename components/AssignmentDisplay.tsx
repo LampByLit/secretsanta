@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { decryptPrivateKey } from '@/lib/crypto/aes';
-import { decrypt, decodeMessage } from '@/lib/crypto/elgamal';
+import { decrypt, decodeMessage, P, G } from '@/lib/crypto/elgamal';
+import { modPow } from 'bigint-crypto-utils';
 
 interface AssignmentDisplayProps {
   groupId: string;
@@ -89,14 +90,34 @@ export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pendin
         throw new Error('No encrypted messages found');
       }
 
-      // Step 2: Get encrypted private key (included in response)
+      // Step 2: Get encrypted private key and public key (included in response)
       const privateKeyEncrypted = messagesData.privateKeyEncrypted;
+      const publicKey = messagesData.publicKey;
       if (!privateKeyEncrypted) {
         throw new Error('Private key not found');
       }
+      if (!publicKey) {
+        throw new Error('Public key not found');
+      }
 
       // Step 3: Decrypt private key with password
-      const privateKeyBigInt = BigInt(await decryptPrivateKey(privateKeyEncrypted, password));
+      const privateKeyString = await decryptPrivateKey(privateKeyEncrypted, password);
+      const privateKeyBigInt = BigInt(privateKeyString);
+      console.log(`[Decrypt] Private key (first 50 chars):`, privateKeyString.substring(0, 50));
+      console.log(`[Decrypt] Private key bigint:`, privateKeyBigInt.toString().substring(0, 50));
+      
+      // Verify private key matches public key
+      const computedPublicKey = await modPow(G, privateKeyBigInt, P);
+      console.log(`[Decrypt] Computed public key from private key:`, computedPublicKey.toString().substring(0, 50));
+      console.log(`[Decrypt] Stored public key:`, publicKey.substring(0, 50));
+      if (computedPublicKey.toString() !== publicKey) {
+        console.error(`[Decrypt] WARNING: Private key does NOT match public key!`);
+        console.error(`[Decrypt] Computed: ${computedPublicKey.toString()}`);
+        console.error(`[Decrypt] Stored: ${publicKey}`);
+        throw new Error('Private key does not match public key. This indicates a key storage/retrieval issue.');
+      } else {
+        console.log(`[Decrypt] ✓ Private key matches public key`);
+      }
 
       // Step 4: Try decrypting each encrypted message
       let decryptedAssignment = null;

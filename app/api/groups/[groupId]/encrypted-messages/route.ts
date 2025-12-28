@@ -61,6 +61,7 @@ export async function GET(
         c2: msg.c2,
       })),
       privateKeyEncrypted: member.private_key_encrypted, // Return encrypted private key for client-side decryption
+      publicKey: member.public_key, // Return public key for verification
     });
   } catch (error) {
     console.error('Error fetching encrypted messages:', error);
