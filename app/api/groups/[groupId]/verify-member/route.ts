@@ -60,11 +60,29 @@ export async function POST(
       // Check if creator has also joined as a member
       const member = dbHelpers.getMemberByEmail(groupId, email);
       
+      // Check and update group status from 'closed' to 'ready' if all members have completed backfill
+      // Note: This checks after login, but the actual status transition happens after backfill completes
+      // This is just a safety check in case backfill was already done
+      if (group.status === 'closed') {
+        console.log(`[Verify Member] Checking status for group ${groupId} after creator ${email} login...`);
+        const statusBefore = group.status;
+        dbHelpers.checkAndUpdateGroupStatus(groupId);
+        // Re-fetch group to get updated status
+        const updatedGroup = dbHelpers.getGroupById(groupId);
+        if (updatedGroup) {
+          if (updatedGroup.status !== statusBefore) {
+            console.log(`[Verify Member] ✓ Group ${groupId} status changed from '${statusBefore}' to '${updatedGroup.status}'`);
+          }
+          group.status = updatedGroup.status;
+        }
+      }
+      
       return NextResponse.json({ 
         success: true,
         isCreator: true,
         memberId: member?.id,
-        name: member?.name || 'Creator'
+        name: member?.name || 'Creator',
+        groupStatus: group.status // CRITICAL: Include group status so backfill can run
       });
     }
 
