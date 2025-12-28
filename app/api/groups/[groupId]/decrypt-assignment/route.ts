@@ -74,17 +74,18 @@ export async function POST(
           const group = dbHelpers.getGroupById(groupId);
           if (group) {
             try {
+              // Use plaintext email from request, not encrypted member.email
               await sendAssignmentEmail(
-                member.email,
+                email, // Use plaintext email from request, not encrypted member.email
                 member.name,
                 santee.name,
                 santee.address,
                 santee.message,
                 group.unique_url
               );
-              console.log(`[Decrypt Assignment] ✓ Email sent to ${member.email} (${member.name})`);
+              console.log(`[Decrypt Assignment] ✓ Email sent to ${email} (${member.name})`);
             } catch (emailError: any) {
-              console.error(`[Decrypt Assignment] ✗ Failed to send email to ${member.email}:`, emailError.message || emailError);
+              console.error(`[Decrypt Assignment] ✗ Failed to send email to ${email}:`, emailError.message || emailError);
               // Continue even if email fails
             }
           }
