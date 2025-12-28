@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import Image from "next/image";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +18,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+      <body className="min-h-screen bg-gray-50">
+        <Link 
+          href="https://lampbylit.com" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="fixed top-4 left-4 z-50 hover:opacity-80 transition-opacity"
+        >
+          <Image
+            src="/favicon.png"
+            alt="Lamp By Lit"
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
+        </Link>
+        {children}
+      </body>
     </html>
   );
 }
