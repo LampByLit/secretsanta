@@ -233,16 +233,7 @@ export function decodeMessage(encoded: bigint): { name: string; address: string;
     throw new Error('Could not determine valid message structure - too many leading zeros needed');
   }
 
-  // Read name length (4 bytes, big-endian)
-  if (bytes.length < 4) {
-    throw new Error(`Invalid encoded message: too short (${bytes.length} bytes, need at least 4)`);
-  }
-  const nameLength = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-  
-  if (nameLength < 0 || nameLength > 1000) {
-    throw new Error(`Invalid name length: ${nameLength} (likely wrong key or corrupted data)`);
-  }
-  
+  // nameLength is already set from the while loop above
   // Read name
   if (bytes.length < 4 + nameLength) throw new Error('Invalid encoded message: name truncated');
   const nameBytes = bytes.slice(4, 4 + nameLength);
