@@ -14,7 +14,7 @@ export default function Home() {
           >
             Mathematically extra-complicated Secretest Santa 2025
           </a>
-          . This tool provides a cryptographically secure, privacy-focused tool for organizing Secret Santa Gift Exchanges at scale, and is hosted on Railway directly from it's Github repository, from which this tool can be downloaded and verified:{" "}
+          . This tool provides a cryptographically secure, privacy-focused tool for organizing Secret Santa Gift Exchanges at scale, and is hosted on Railway directly from its Github repository, from which this tool can be downloaded and verified:{" "}
           <a
             href="https://github.com/LampByLit/secretsanta"
             target="_blank"
