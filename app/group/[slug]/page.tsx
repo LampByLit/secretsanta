@@ -153,6 +153,19 @@ export default function GroupPage() {
     }
   };
 
+  const handleLogout = () => {
+    if (!groupData) return;
+    
+    // Clear creator cookie
+    document.cookie = `santa_creator_${groupData.group.id}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    
+    // Clear member cookie
+    document.cookie = `santa_member_${groupData.group.id}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    
+    // Reload the page to reset state
+    window.location.reload();
+  };
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center">
@@ -174,8 +187,20 @@ export default function GroupPage() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{groupData.group.name}</h1>
-        <p className="text-gray-600 mb-8">Secret Santa Group</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{groupData.group.name}</h1>
+            <p className="text-gray-600">Secret Santa Group</p>
+          </div>
+          {(isCreator || isMember) && (
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Log Out
+            </button>
+          )}
+        </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -338,18 +363,18 @@ export default function GroupPage() {
           )}
 
           {groupData.group.status !== 'pending' && (
-            <>
-              <AssignmentDisplay groupId={groupData.group.id} slug={slug} />
-              <div className="mt-4 text-center">
-                <a
-                  href={`/group/${slug}/reset`}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Forgot Password?
-                </a>
-              </div>
-            </>
+            <AssignmentDisplay groupId={groupData.group.id} slug={slug} />
           )}
+
+          {/* Forgot Password link - always visible */}
+          <div className="mt-4 text-center">
+            <a
+              href={`/group/${slug}/reset`}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Forgot Password?
+            </a>
+          </div>
         </div>
 
         {showJoinForm && (
