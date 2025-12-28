@@ -126,10 +126,7 @@ export async function GET(
     // Return encrypted data (NOT decrypted - client will decrypt) and new members' public keys
     return NextResponse.json({
       needsBackfill: true,
-      newMembers: newMembers.map(m => ({
-        id: m.id,
-        publicKey: m.public_key,
-      })),
+      newMembers: newMembers,
       memberData: {
         name: member.name,
         addressEncrypted: member.address, // Still encrypted - client will decrypt

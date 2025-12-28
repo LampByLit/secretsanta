@@ -54,3 +54,4 @@ The trade-off is trust in the server. But if you're already trusting a standalon
 
 So that's how I implemented Tom7's idea in TypeScript. Same protocol, same cryptography, same mathematical complexity. Just without the manual labor. Because sometimes the best way to preserve over-complication is to automate it.
 
+
