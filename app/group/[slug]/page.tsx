@@ -431,6 +431,8 @@ export default function GroupPage() {
                       </div>
                     </div>
                   )}
+            </>
+          )}
 
                   {showCloseConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -654,7 +656,7 @@ export default function GroupPage() {
             </>
           )}
 
-          {groupData.group.status !== 'pending' && (
+          {(groupData.group.status === 'closed' || groupData.group.status === 'ready' || groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && (
             <>
               {!isMember ? (
                 <div className="mt-6">
