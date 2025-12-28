@@ -367,37 +367,35 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
           </div>
 
 
-          {/* Floating byte counter tooltip */}
+          {/* Inline byte counter above buttons */}
           {shouldShowByteTooltip && sizeWarning && messageSize && (
-            <div className="fixed z-60 bottom-4 left-1/2 transform -translate-x-1/2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 max-w-sm w-full mx-4 sm:mx-0 sm:max-w-xs">
-              <div className={`text-sm ${
-                sizeWarning.type === 'error'
-                  ? 'text-red-700'
-                  : sizeWarning.type === 'warning'
-                  ? 'text-yellow-700'
-                  : 'text-blue-700'
-              }`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold">
-                    {sizeWarning.type === 'error' ? '⚠️' : sizeWarning.type === 'warning' ? '⚠️' : 'ℹ️'}
-                  </span>
-                  <span className="font-medium">{sizeWarning.message}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                  <div
-                    className={`h-2 rounded-full transition-all ${
-                      sizeWarning.type === 'error'
-                        ? 'bg-red-600'
-                        : sizeWarning.type === 'warning'
-                        ? 'bg-yellow-600'
-                        : 'bg-blue-600'
-                    }`}
-                    style={{ width: `${Math.min(sizeWarning.percentageUsed, 100)}%` }}
-                  />
-                </div>
-                <div className="text-xs text-gray-600">
-                  Name: {messageSize.nameBytes} | Address: {messageSize.addressBytes} | Message: {messageSize.messageBytes} | Total: {messageSize.totalBytes}/100 bytes
-                </div>
+            <div className={`mb-4 px-4 py-3 rounded-lg border ${
+              sizeWarning.type === 'error'
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : sizeWarning.type === 'warning'
+                ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                : 'bg-blue-50 border-blue-200 text-blue-700'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-semibold">
+                  {sizeWarning.type === 'error' ? '⚠️' : sizeWarning.type === 'warning' ? '⚠️' : 'ℹ️'}
+                </span>
+                <span className="font-medium text-sm">{sizeWarning.message}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${
+                    sizeWarning.type === 'error'
+                      ? 'bg-red-600'
+                      : sizeWarning.type === 'warning'
+                      ? 'bg-yellow-600'
+                      : 'bg-blue-600'
+                  }`}
+                  style={{ width: `${Math.min(sizeWarning.percentageUsed, 100)}%` }}
+                />
+              </div>
+              <div className="text-xs text-gray-600">
+                Name: {messageSize.nameBytes} | Address: {messageSize.addressBytes} | Message: {messageSize.messageBytes} | Total: {messageSize.totalBytes}/100 bytes
               </div>
             </div>
           )}
