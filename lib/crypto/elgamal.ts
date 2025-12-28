@@ -8,13 +8,13 @@ const P = BigInt('17976931348623159077293051907890247336179769789423065727343008
 const G = BigInt(7); // Generator
 
 export interface KeyPair {
-  publicKey: BigInt;
-  privateKey: BigInt; // This will be encrypted before storage
+  publicKey: bigint;
+  privateKey: bigint; // This will be encrypted before storage
 }
 
 export interface EncryptedMessage {
-  c1: BigInt;
-  c2: BigInt;
+  c1: bigint;
+  c2: bigint;
 }
 
 /**
@@ -52,7 +52,7 @@ export async function generateKeyPair(): Promise<KeyPair> {
 /**
  * Encrypt a message using ElGamal
  */
-export async function encrypt(publicKey: BigInt, message: BigInt): Promise<EncryptedMessage> {
+export async function encrypt(publicKey: bigint, message: bigint): Promise<EncryptedMessage> {
   // Generate random y
   const max = P - BigInt(2);
   const min = BigInt(2);
@@ -83,7 +83,7 @@ export async function encrypt(publicKey: BigInt, message: BigInt): Promise<Encry
 /**
  * Decrypt a message using ElGamal
  */
-export async function decrypt(privateKey: BigInt, encrypted: EncryptedMessage): Promise<BigInt> {
+export async function decrypt(privateKey: bigint, encrypted: EncryptedMessage): Promise<bigint> {
   // Compute shared secret S = c1^privateKey mod P
   const s = await modPow(encrypted.c1, privateKey, P);
   
@@ -99,10 +99,10 @@ export async function decrypt(privateKey: BigInt, encrypted: EncryptedMessage): 
 /**
  * Check if a number is a quadratic residue mod P
  */
-export function isQuadraticResidue(n: BigInt): boolean {
+export async function isQuadraticResidue(n: bigint): Promise<boolean> {
   // For Sophie Germain prime P = 2q + 1, use Euler's criterion
   const exponent = (P - BigInt(1)) / BigInt(2);
-  const result = modPow(n, exponent, P);
+  const result = await modPow(n, exponent, P);
   return result === BigInt(1);
 }
 
