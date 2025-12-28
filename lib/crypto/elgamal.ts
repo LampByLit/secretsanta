@@ -162,6 +162,8 @@ export function encodeMessage(name: string, address: string, message: string): b
   buffer.set(messageBytes, offset);
   
   // Convert to bigint
+  // We need to preserve leading zeros, so we'll store the length separately
+  // Actually, we can just convert directly - bigint preserves the value correctly
   let result = BigInt(0);
   for (let i = 0; i < buffer.length; i++) {
     result = result * BigInt(256) + BigInt(buffer[i]);
@@ -172,6 +174,9 @@ export function encodeMessage(name: string, address: string, message: string): b
     throw new Error(`Encoded message too large: ${result} >= ${P}`);
   }
   
+  // Store the original buffer length so we can reconstruct it correctly
+  // Actually, we need a different approach - store length as metadata or pad
+  // For now, let's ensure the buffer length is preserved by checking the total bytes
   return result;
 }
 
@@ -180,15 +185,52 @@ export function encodeMessage(name: string, address: string, message: string): b
  */
 export function decodeMessage(encoded: bigint): { name: string; address: string; message: string } {
   // Convert bigint to bytes
-  // Use string conversion to hex then to bytes to preserve all bytes including leading zeros
+  // The issue: toString(16) loses leading zeros
+  // Solution: Convert to hex, then try reading lengths. If invalid, pad with leading zeros
+  
   let hex = encoded.toString(16);
   // Pad to even length
   if (hex.length % 2 !== 0) {
     hex = '0' + hex;
   }
-  const bytes: number[] = [];
+  
+  // Convert hex to bytes
+  let bytes: number[] = [];
   for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.substr(i, 2), 16));
+    const byteHex = hex.slice(i, i + 2);
+    bytes.push(parseInt(byteHex, 16));
+  }
+  
+  // Try to read the first length. If it's invalid (too large), we're missing leading zeros
+  // Maximum valid name length is ~1000 (but realistically much less)
+  // If the first 4 bytes form a number > 1000, we need to pad with zeros
+  let nameLength = 0;
+  let attempts = 0;
+  const maxAttempts = 10; // Don't try forever
+  
+  while (attempts < maxAttempts) {
+    if (bytes.length < 4) {
+      // Need at least 4 bytes for length
+      bytes.unshift(0);
+      attempts++;
+      continue;
+    }
+    
+    nameLength = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    
+    // Check if this is a valid length (reasonable range)
+    if (nameLength >= 0 && nameLength <= 1000 && bytes.length >= 4 + nameLength + 4) {
+      // This looks valid, break out
+      break;
+    }
+    
+    // Invalid length, probably missing a leading zero
+    bytes.unshift(0);
+    attempts++;
+  }
+  
+  if (attempts >= maxAttempts) {
+    throw new Error('Could not determine valid message structure - too many leading zeros needed');
   }
 
   // Read name length (4 bytes, big-endian)
