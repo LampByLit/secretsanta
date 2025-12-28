@@ -42,9 +42,20 @@ export default function GroupPage() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInitiateConfirm, setShowInitiateConfirm] = useState(false);
+  const [showExcludeConfirm, setShowExcludeConfirm] = useState(false);
+  const [excludeMemberId, setExcludeMemberId] = useState<string | null>(null);
+  const [excludeMemberExcluded, setExcludeMemberExcluded] = useState(false);
   const [assignment, setAssignment] = useState<any>(null);
   const [error, setError] = useState('');
   const [creatorEmail, setCreatorEmail] = useState<string>('');
+  
+  // Form state for modals
+  const [initiateEmail, setInitiateEmail] = useState('');
+  const [initiatePassword, setInitiatePassword] = useState('');
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [excludeEmail, setExcludeEmail] = useState('');
+  const [excludePassword, setExcludePassword] = useState('');
 
   useEffect(() => {
     loadGroupData();
@@ -118,19 +129,19 @@ export default function GroupPage() {
   };
 
 
-  const handleInitiateCycle = async () => {
+  const handleInitiateCycle = async (email: string, password: string) => {
     if (!groupData || !isCreator) return;
     
-    const creatorEmail = prompt('Enter your email:');
-    const creatorPassword = prompt('Enter your password:');
-    
-    if (!creatorEmail || !creatorPassword) return;
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/groups/${groupData.group.id}/initiate-cycle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creatorEmail, creatorPassword }),
+        body: JSON.stringify({ creatorEmail: email, creatorPassword: password }),
       });
 
       if (!response.ok) {
@@ -141,24 +152,27 @@ export default function GroupPage() {
       // Reload group data
       loadGroupById(groupData.group.id);
       setShowInitiateConfirm(false);
+      setInitiateEmail('');
+      setInitiatePassword('');
+      setError('');
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const handleDeleteGroup = async () => {
+  const handleDeleteGroup = async (email: string, password: string) => {
     if (!groupData || !isCreator) return;
     
-    const creatorEmail = prompt('Enter your email:');
-    const creatorPassword = prompt('Enter your password:');
-    
-    if (!creatorEmail || !creatorPassword) return;
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/groups/${groupData.group.id}/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: creatorEmail, password: creatorPassword }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
@@ -169,6 +183,42 @@ export default function GroupPage() {
       window.location.href = '/';
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const handleExcludeMember = async (email: string, password: string, memberId: string, excluded: boolean) => {
+    if (!groupData || !isCreator) return;
+    
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/groups/${groupData.group.id}/exclude`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creatorEmail: email,
+          creatorPassword: password,
+          memberId,
+          excluded,
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to toggle exclusion');
+      }
+      
+      loadGroupById(groupData.group.id);
+      setShowExcludeConfirm(false);
+      setExcludeEmail('');
+      setExcludePassword('');
+      setExcludeMemberId(null);
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to toggle exclusion');
     }
   };
 
@@ -271,29 +321,11 @@ export default function GroupPage() {
                 <span className="text-gray-800">{member.name}</span>
                 {isCreator && groupData.group.status === 'pending' && (
                   <button
-                    onClick={async () => {
-                      const creatorEmail = prompt('Enter your email:');
-                      const creatorPassword = prompt('Enter your password:');
-                      if (!creatorEmail || !creatorPassword) return;
-                      
-                      try {
-                        const response = await fetch(`/api/groups/${groupData.group.id}/exclude`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            creatorEmail,
-                            creatorPassword,
-                            memberId: member.id,
-                            excluded: !member.excluded,
-                          }),
-                        });
-                        
-                        if (response.ok) {
-                          loadGroupById(groupData.group.id);
-                        }
-                      } catch (err) {
-                        console.error('Error toggling exclusion:', err);
-                      }
+                    onClick={() => {
+                      setExcludeEmail(creatorEmail || '');
+                      setExcludeMemberId(member.id);
+                      setExcludeMemberExcluded(!member.excluded);
+                      setShowExcludeConfirm(true);
                     }}
                     className="text-sm text-red-600 hover:text-red-800"
                   >
@@ -334,7 +366,10 @@ export default function GroupPage() {
                 <>
 
                   <button
-                    onClick={() => setShowInitiateConfirm(true)}
+                    onClick={() => {
+                      setInitiateEmail(creatorEmail || '');
+                      setShowInitiateConfirm(true);
+                    }}
                     disabled={!canInitiate}
                     className={`w-full py-3 rounded-lg font-semibold mb-4 transition-colors ${
                       canInitiate
@@ -347,18 +382,52 @@ export default function GroupPage() {
 
                   {showInitiateConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                      <div className="bg-white p-6 rounded-lg max-w-md">
+                      <div className="bg-white p-6 rounded-lg max-w-md w-full">
                         <h3 className="text-xl font-bold mb-4">Confirm Cycle Initiation</h3>
                         <p className="mb-4">Are you sure you want to initiate the Secret Santa cycle? This cannot be undone.</p>
+                        
+                        <div className="space-y-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Email
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={initiateEmail}
+                              onChange={(e) => setInitiateEmail(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                              placeholder="Enter your email"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              value={initiatePassword}
+                              onChange={(e) => setInitiatePassword(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                              placeholder="Enter your password"
+                            />
+                          </div>
+                        </div>
+                        
                         <div className="flex gap-4">
                           <button
-                            onClick={handleInitiateCycle}
+                            onClick={() => handleInitiateCycle(initiateEmail, initiatePassword)}
                             className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
                           >
-                            Yes, Initiate
+                            Confirm Initiate
                           </button>
                           <button
-                            onClick={() => setShowInitiateConfirm(false)}
+                            onClick={() => {
+                              setShowInitiateConfirm(false);
+                              setInitiateEmail('');
+                              setInitiatePassword('');
+                            }}
                             className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400"
                           >
                             Cancel
@@ -369,7 +438,10 @@ export default function GroupPage() {
                   )}
 
                   <button
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={() => {
+                      setDeleteEmail(creatorEmail || '');
+                      setShowDeleteConfirm(true);
+                    }}
                     className="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
                   >
                     DELETE GROUP
@@ -377,18 +449,120 @@ export default function GroupPage() {
 
                   {showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                      <div className="bg-white p-6 rounded-lg max-w-md">
+                      <div className="bg-white p-6 rounded-lg max-w-md w-full">
                         <h3 className="text-xl font-bold mb-4 text-red-600">Confirm Deletion</h3>
                         <p className="mb-4">Are you sure you want to delete this group? This action cannot be undone.</p>
+                        
+                        <div className="space-y-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Email
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={deleteEmail}
+                              onChange={(e) => setDeleteEmail(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                              placeholder="Enter your email"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              value={deletePassword}
+                              onChange={(e) => setDeletePassword(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                              placeholder="Enter your password"
+                            />
+                          </div>
+                        </div>
+                        
                         <div className="flex gap-4">
                           <button
-                            onClick={handleDeleteGroup}
+                            onClick={() => handleDeleteGroup(deleteEmail, deletePassword)}
                             className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700"
                           >
-                            Yes, Delete
+                            Confirm Delete
                           </button>
                           <button
-                            onClick={() => setShowDeleteConfirm(false)}
+                            onClick={() => {
+                              setShowDeleteConfirm(false);
+                              setDeleteEmail('');
+                              setDeletePassword('');
+                            }}
+                            className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {showExcludeConfirm && excludeMemberId && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white p-6 rounded-lg max-w-md w-full">
+                        <h3 className="text-xl font-bold mb-4">
+                          {excludeMemberExcluded ? 'Include Member' : 'Exclude Member'}
+                        </h3>
+                        <p className="mb-4">
+                          {excludeMemberExcluded 
+                            ? 'Are you sure you want to include this member in the Secret Santa exchange?'
+                            : 'Are you sure you want to exclude this member from the Secret Santa exchange?'}
+                        </p>
+                        
+                        <div className="space-y-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Email
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={excludeEmail}
+                              onChange={(e) => setExcludeEmail(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                              placeholder="Enter your email"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              value={excludePassword}
+                              onChange={(e) => setExcludePassword(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                              placeholder="Enter your password"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => handleExcludeMember(excludeEmail, excludePassword, excludeMemberId, excludeMemberExcluded)}
+                            className={`flex-1 py-2 rounded-lg ${
+                              excludeMemberExcluded
+                                ? 'bg-green-600 text-white hover:bg-green-700'
+                                : 'bg-red-600 text-white hover:bg-red-700'
+                            }`}
+                          >
+                            {excludeMemberExcluded ? 'Confirm Include' : 'Confirm Exclude'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowExcludeConfirm(false);
+                              setExcludeEmail('');
+                              setExcludePassword('');
+                              setExcludeMemberId(null);
+                            }}
                             className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400"
                           >
                             Cancel
