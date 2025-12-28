@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import JoinForm from '@/components/JoinForm';
 import LoginForm from '@/components/LoginForm';
@@ -64,19 +64,36 @@ export default function GroupPage() {
     loadGroupData();
   }, [slug]);
 
+  // Ref to track polling state across re-renders
+  const pollingRef = useRef<{ intervalId: NodeJS.Timeout | null; isActive: boolean }>({
+    intervalId: null,
+    isActive: false,
+  });
+
   // Poll for status updates when group is closed and user is creator
   useEffect(() => {
     // Only poll if group is closed, user is creator, and we have group data
     if (!groupData || groupData.group.status !== 'closed' || !isCreator) {
+      // Stop polling if conditions no longer met
+      if (pollingRef.current.intervalId) {
+        clearInterval(pollingRef.current.intervalId);
+        pollingRef.current.intervalId = null;
+        pollingRef.current.isActive = false;
+      }
+      return;
+    }
+
+    // If already polling, don't start another interval
+    if (pollingRef.current.isActive) {
       return;
     }
 
     const groupId = groupData.group.id;
-    let isPolling = true;
+    pollingRef.current.isActive = true;
     
     // Poll every 3 seconds to check if status changed to 'ready'
-    const pollInterval = setInterval(async () => {
-      if (!isPolling) return; // Stop if we're no longer polling
+    pollingRef.current.intervalId = setInterval(async () => {
+      if (!pollingRef.current.isActive) return; // Stop if we're no longer polling
       
       try {
         // Check for creator cookie for email
@@ -98,15 +115,30 @@ export default function GroupPage() {
         // If status changed to 'ready', update state and stop polling
         if (data.group && data.group.status === 'ready') {
           setGroupData(data);
-          isPolling = false;
-          clearInterval(pollInterval);
+          pollingRef.current.isActive = false;
+          if (pollingRef.current.intervalId) {
+            clearInterval(pollingRef.current.intervalId);
+            pollingRef.current.intervalId = null;
+          }
         } else if (data.group && data.group.status === 'closed') {
-          // Update group data to reflect any changes (member count, etc.)
-          setGroupData(data);
+          // Only update if something meaningful changed (member count, etc.)
+          // Use functional update to avoid unnecessary re-renders
+          setGroupData(prev => {
+            if (!prev) return data;
+            // Only update if member count changed or other meaningful data changed
+            if (prev.memberCount !== data.memberCount || 
+                prev.members.length !== data.members.length) {
+              return data;
+            }
+            return prev; // No change, return previous to avoid re-render
+          });
         } else {
           // Status changed to something else, stop polling
-          isPolling = false;
-          clearInterval(pollInterval);
+          pollingRef.current.isActive = false;
+          if (pollingRef.current.intervalId) {
+            clearInterval(pollingRef.current.intervalId);
+            pollingRef.current.intervalId = null;
+          }
         }
       } catch (err) {
         // Silently fail - don't spam console with errors
@@ -116,8 +148,11 @@ export default function GroupPage() {
 
     // Cleanup interval on unmount or when conditions change
     return () => {
-      isPolling = false;
-      clearInterval(pollInterval);
+      pollingRef.current.isActive = false;
+      if (pollingRef.current.intervalId) {
+        clearInterval(pollingRef.current.intervalId);
+        pollingRef.current.intervalId = null;
+      }
     };
   }, [groupData?.group.status, groupData?.group.id, isCreator]); // Only depend on status and id, not entire groupData object
 
