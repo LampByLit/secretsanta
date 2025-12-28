@@ -290,12 +290,10 @@ export default function GroupPage() {
         )}
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              Members: {groupData.memberCount}
-            </h2>
-            {groupData.group.status !== 'pending' && (
-              <div className="flex flex-col items-end gap-2">
+          {/* Status information at the top */}
+          {groupData.group.status !== 'pending' && (
+            <div className="mb-6 pb-6 border-b">
+              <div className="flex flex-col gap-2">
                 {(groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && groupData.decryptionCount !== undefined && groupData.totalMembers !== undefined && (
                   <div className="text-lg font-semibold text-blue-600">
                     {groupData.decryptionCount} / {groupData.totalMembers} Members Have Viewed Their Assignment
@@ -312,38 +310,6 @@ export default function GroupPage() {
                   )}
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="space-y-2 mb-6">
-            {groupData.members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between py-2 border-b">
-                <span className="text-gray-800">{member.name}</span>
-                {isCreator && groupData.group.status === 'pending' && (
-                  <button
-                    onClick={() => {
-                      setExcludeEmail(creatorEmail || '');
-                      setExcludeMemberId(member.id);
-                      setExcludeMemberExcluded(!member.excluded);
-                      setShowExcludeConfirm(true);
-                    }}
-                    className="text-sm text-red-600 hover:text-red-800"
-                  >
-                    {member.excluded ? 'Include' : 'Exclude'}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {isCreator && groupData.allMembers.length > groupData.members.length && (
-            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="font-semibold mb-2">Excluded Members (Creator Only)</h3>
-              {groupData.allMembers
-                .filter(m => m.excluded)
-                .map((member) => (
-                  <div key={member.id} className="text-gray-600">{member.name}</div>
-                ))}
             </div>
           )}
 
@@ -607,6 +573,47 @@ export default function GroupPage() {
             >
               Forgot Password?
             </a>
+          </div>
+
+          {/* Members list at the bottom */}
+          <div className="mt-8 pt-6 border-t">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">
+                Members: {groupData.memberCount}
+              </h2>
+            </div>
+
+            <div className="space-y-2 mb-6">
+              {groupData.members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between py-2 border-b">
+                  <span className="text-gray-800">{member.name}</span>
+                  {isCreator && groupData.group.status === 'pending' && (
+                    <button
+                      onClick={() => {
+                        setExcludeEmail(creatorEmail || '');
+                        setExcludeMemberId(member.id);
+                        setExcludeMemberExcluded(!member.excluded);
+                        setShowExcludeConfirm(true);
+                      }}
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      {member.excluded ? 'Include' : 'Exclude'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {isCreator && groupData.allMembers.length > groupData.members.length && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h3 className="font-semibold mb-2">Excluded Members (Creator Only)</h3>
+                {groupData.allMembers
+                  .filter(m => m.excluded)
+                  .map((member) => (
+                    <div key={member.id} className="text-gray-600">{member.name}</div>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
 
