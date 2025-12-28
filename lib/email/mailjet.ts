@@ -80,8 +80,9 @@ View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
     console.log(`[MailJet] Email sent successfully. Response:`, JSON.stringify(result.body, null, 2));
     
     // Extract MessageID for tracking
-    const messageId = result.body?.Messages?.[0]?.To?.[0]?.MessageID;
-    const messageUUID = result.body?.Messages?.[0]?.To?.[0]?.MessageUUID;
+    const body = result.body as any;
+    const messageId = body?.Messages?.[0]?.To?.[0]?.MessageID;
+    const messageUUID = body?.Messages?.[0]?.To?.[0]?.MessageUUID;
     
     if (messageId) {
       console.log(`[MailJet] MessageID: ${messageId}, UUID: ${messageUUID}`);
