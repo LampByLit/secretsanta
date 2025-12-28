@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Secret Santa",
   description: "Automated Secret Santa using Tom7's cryptographic method",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
