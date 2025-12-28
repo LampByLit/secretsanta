@@ -100,7 +100,8 @@ export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pendin
 
       // Step 4: Try decrypting each encrypted message
       let decryptedAssignment = null;
-      for (const encryptedMsg of encryptedMessages) {
+      for (let i = 0; i < encryptedMessages.length; i++) {
+        const encryptedMsg = encryptedMessages[i];
         try {
           const encrypted = {
             c1: BigInt(encryptedMsg.c1),
@@ -108,17 +109,28 @@ export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pendin
           };
           
           const decryptedBigInt = await decrypt(privateKeyBigInt, encrypted);
-          const decoded = decodeMessage(decryptedBigInt);
+          console.log(`[Decrypt] Message ${i + 1}: Decrypted bigint:`, decryptedBigInt.toString());
           
-          // Successfully decrypted! This is our assignment
-          decryptedAssignment = {
-            santeeName: decoded.name,
-            santeeAddress: decoded.address,
-            santeeMessage: decoded.message,
-          };
-          break;
-        } catch (e) {
+          const decoded = decodeMessage(decryptedBigInt);
+          console.log(`[Decrypt] Message ${i + 1}: Decoded:`, decoded);
+          
+          // Validate that we got meaningful data
+          if (decoded.name && decoded.address && decoded.message) {
+            // Successfully decrypted! This is our assignment
+            decryptedAssignment = {
+              santeeName: decoded.name,
+              santeeAddress: decoded.address,
+              santeeMessage: decoded.message,
+            };
+            console.log(`[Decrypt] Successfully decrypted assignment:`, decryptedAssignment);
+            break;
+          } else {
+            console.warn(`[Decrypt] Message ${i + 1}: Decoded but empty values:`, decoded);
+            // Continue trying other messages
+          }
+        } catch (e: any) {
           // This message wasn't for us, try next one
+          console.log(`[Decrypt] Message ${i + 1}: Failed to decrypt (expected for wrong key):`, e.message);
           continue;
         }
       }

@@ -180,17 +180,26 @@ export function encodeMessage(name: string, address: string, message: string): b
  */
 export function decodeMessage(encoded: bigint): { name: string; address: string; message: string } {
   // Convert bigint to bytes
-  const bytes: number[] = [];
-  let num = encoded;
-  
-  while (num > 0) {
-    bytes.unshift(Number(num % BigInt(256)));
-    num = num / BigInt(256);
+  // Use string conversion to hex then to bytes to preserve all bytes including leading zeros
+  let hex = encoded.toString(16);
+  // Pad to even length
+  if (hex.length % 2 !== 0) {
+    hex = '0' + hex;
   }
-  
+  const bytes: number[] = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes.push(parseInt(hex.substr(i, 2), 16));
+  }
+
   // Read name length (4 bytes, big-endian)
-  if (bytes.length < 4) throw new Error('Invalid encoded message: too short');
+  if (bytes.length < 4) {
+    throw new Error(`Invalid encoded message: too short (${bytes.length} bytes, need at least 4)`);
+  }
   const nameLength = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+  
+  if (nameLength < 0 || nameLength > 1000) {
+    throw new Error(`Invalid name length: ${nameLength} (likely wrong key or corrupted data)`);
+  }
   
   // Read name
   if (bytes.length < 4 + nameLength) throw new Error('Invalid encoded message: name truncated');
@@ -200,23 +209,39 @@ export function decodeMessage(encoded: bigint): { name: string; address: string;
   
   // Read address length
   let offset = 4 + nameLength;
-  if (bytes.length < offset + 4) throw new Error('Invalid encoded message: address length missing');
+  if (bytes.length < offset + 4) {
+    throw new Error(`Invalid encoded message: address length missing (have ${bytes.length} bytes, need ${offset + 4})`);
+  }
   const addressLength = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+  
+  if (addressLength < 0 || addressLength > 1000) {
+    throw new Error(`Invalid address length: ${addressLength} (likely wrong key or corrupted data)`);
+  }
   
   // Read address
   offset += 4;
-  if (bytes.length < offset + addressLength) throw new Error('Invalid encoded message: address truncated');
+  if (bytes.length < offset + addressLength) {
+    throw new Error(`Invalid encoded message: address truncated (have ${bytes.length} bytes, need ${offset + addressLength})`);
+  }
   const addressBytes = bytes.slice(offset, offset + addressLength);
   const address = decoder.decode(new Uint8Array(addressBytes));
   
   // Read message length
   offset += addressLength;
-  if (bytes.length < offset + 4) throw new Error('Invalid encoded message: message length missing');
+  if (bytes.length < offset + 4) {
+    throw new Error(`Invalid encoded message: message length missing (have ${bytes.length} bytes, need ${offset + 4})`);
+  }
   const messageLength = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+  
+  if (messageLength < 0 || messageLength > 1000) {
+    throw new Error(`Invalid message length: ${messageLength} (likely wrong key or corrupted data)`);
+  }
   
   // Read message
   offset += 4;
-  if (bytes.length < offset + messageLength) throw new Error('Invalid encoded message: message truncated');
+  if (bytes.length < offset + messageLength) {
+    throw new Error(`Invalid encoded message: message truncated (have ${bytes.length} bytes, need ${offset + messageLength})`);
+  }
   const messageBytes = bytes.slice(offset, offset + messageLength);
   const message = decoder.decode(new Uint8Array(messageBytes));
   
