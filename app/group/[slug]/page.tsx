@@ -59,6 +59,10 @@ export default function GroupPage() {
   const [deletePassword, setDeletePassword] = useState('');
   const [excludeEmail, setExcludeEmail] = useState('');
   const [excludePassword, setExcludePassword] = useState('');
+  const [showAutoBackfillPrompt, setShowAutoBackfillPrompt] = useState(false);
+  const [autoBackfillPassword, setAutoBackfillPassword] = useState('');
+  const [autoBackfilling, setAutoBackfilling] = useState(false);
+  const autoBackfillAttempted = useRef(false);
 
   useEffect(() => {
     loadGroupData();
@@ -226,10 +230,14 @@ export default function GroupPage() {
         memberCount: data.memberCount
       });
       
-      // If creator is also a member and group is closed, trigger backfill automatically
-      if (creatorCookie && data.isMember && data.group.status === 'closed') {
+      // If creator is also a member and group is closed, auto-trigger backfill prompt
+      if (creatorCookie && data.isMember && data.group.status === 'closed' && !autoBackfillAttempted.current) {
         const creatorEmail = creatorEmailFromCookie || '';
-        console.log(`[Group Page] ⚠ Creator ${creatorEmail} is also a member but backfill is missing - show button`);
+        console.log(`[Group Page] ⚠ Creator ${creatorEmail} is also a member but backfill is missing - auto-triggering backfill prompt`);
+        // Small delay to ensure page is fully loaded
+        setTimeout(() => {
+          setShowAutoBackfillPrompt(true);
+        }, 500);
       }
       
       // Assignment loading is handled by the AssignmentDisplay component
@@ -471,18 +479,6 @@ export default function GroupPage() {
 
           {(groupData.group.status === 'closed' || groupData.group.status === 'ready') && isCreator && (
             <>
-              {/* Show backfill button if creator is member and backfill is missing */}
-              {isMember && groupData.group.status === 'closed' && (
-                <button
-                  onClick={() => {
-                    setShowLoginForm(true);
-                  }}
-                  className="w-full py-3 rounded-lg font-semibold mb-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                >
-                  COMPLETE BACKFILL (Log in to finish setup)
-                </button>
-              )}
-              
               <button
                 onClick={() => {
                   setInitiateEmail(creatorEmail || '');
