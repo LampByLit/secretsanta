@@ -7,6 +7,8 @@ export async function GET(
 ) {
   try {
     const { groupId } = params;
+    const { searchParams } = new URL(request.url);
+    const checkEmail = searchParams.get('checkEmail'); // Optional email to check membership
     
     const group = dbHelpers.getGroupById(groupId);
     if (!group) {
@@ -19,6 +21,13 @@ export async function GET(
     // Get members (exclude excluded members for non-creators)
     const allMembers = dbHelpers.getMembersByGroup(groupId, true);
     const visibleMembers = dbHelpers.getMembersByGroup(groupId, false);
+    
+    // Check if the provided email is actually a member (fledged)
+    let isMember = false;
+    if (checkEmail) {
+      const member = dbHelpers.getMemberByEmail(groupId, checkEmail);
+      isMember = !!member;
+    }
     
     // Get shipment count if cycle initiated
     let shipmentCount = 0;
@@ -45,6 +54,7 @@ export async function GET(
       })),
       memberCount: visibleMembers.length,
       shipmentCount,
+      isMember, // Whether the checked email is actually a member (fledged)
     });
   } catch (error) {
     console.error('Error fetching group:', error);

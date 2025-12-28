@@ -23,6 +23,7 @@ interface GroupData {
   allMembers: Member[];
   memberCount: number;
   shipmentCount: number;
+  isMember?: boolean; // Whether current user is actually a member (fledged)
 }
 
 export default function GroupPage() {
@@ -65,31 +66,43 @@ export default function GroupPage() {
 
   const loadGroupById = async (groupId: string) => {
     try {
-      const response = await fetch(`/api/groups/${groupId}`);
+      // Check for member cookie to get email for membership check
+      const memberCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`santa_member_${groupId}`));
+      const memberEmail = memberCookie ? memberCookie.split('=')[1] : null;
+      
+      // Also check creator cookie for email
+      const creatorCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`santa_creator_${groupId}`));
+      const creatorEmailFromCookie = creatorCookie ? creatorCookie.split('=')[1] : null;
+      
+      // Use member email if available, otherwise creator email
+      const emailToCheck = memberEmail || creatorEmailFromCookie;
+      
+      // Build URL with email check if we have an email
+      const url = emailToCheck 
+        ? `/api/groups/${groupId}?checkEmail=${encodeURIComponent(emailToCheck)}`
+        : `/api/groups/${groupId}`;
+      
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to load group');
       
       const data = await response.json();
       setGroupData(data);
       
       // Check if user is creator (from cookie)
-      const creatorCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith(`santa_creator_${data.group.id}`));
       setIsCreator(!!creatorCookie);
       
       // Extract creator email from cookie if present
       if (creatorCookie) {
-        const emailFromCookie = creatorCookie.split('=')[1];
-        setCreatorEmail(emailFromCookie);
+        setCreatorEmail(creatorEmailFromCookie || '');
       }
       
-      // Check if user is already a member (from cookie)
-      const memberCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith(`santa_member_${data.group.id}`));
-      
-      // If cookie exists, user has joined
-      setIsMember(!!memberCookie);
+      // Check if user is actually a member (fledged) - from API response, not just cookie
+      // A user is "fledged" if they're in the members table
+      setIsMember(data.isMember || false);
       
       // Load assignment if cycle initiated
       if (data.group.status !== 'pending') {
