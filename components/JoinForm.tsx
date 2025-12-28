@@ -152,8 +152,13 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
         throw new Error(joinData.error || 'Failed to join Secret Santa group');
       }
 
-      // Store authentication cookie with email hash (expires in 1 year)
-      document.cookie = `santa_member_${groupId}=${emailHash}; path=/; max-age=31536000`;
+      // Store authentication cookie with email (expires in 1 year) - automatically log user in
+      document.cookie = `santa_member_${groupId}=${formData.email}; path=/; max-age=31536000`;
+      
+      // If this is the creator, also set creator cookie
+      if (creatorEmail && formData.email.toLowerCase().trim() === creatorEmail.toLowerCase().trim()) {
+        document.cookie = `santa_creator_${groupId}=${formData.email}; path=/; max-age=31536000`;
+      }
 
       onSuccess();
     } catch (err: any) {
