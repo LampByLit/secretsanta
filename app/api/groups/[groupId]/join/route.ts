@@ -74,7 +74,7 @@ export async function POST(
       address,
       keyPair.publicKey.toString(),
       '', // Will be updated after client-side encryption
-      false,
+      0, // excluded = false (SQLite uses 0/1, not boolean)
       now
     );
     
