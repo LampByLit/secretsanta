@@ -322,7 +322,7 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               </button>
             </div>
             <p className="mt-1 text-xs text-red-600 font-medium">
-              ⚠️ Important: Your password cannot be recovered or reset. Please save it securely.
+              Important: Your password cannot be recovered or reset. Please save it securely.
             </p>
           </div>
 
@@ -378,7 +378,7 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
             }`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-semibold">
-                  {sizeWarning.type === 'error' ? '⚠️' : sizeWarning.type === 'warning' ? '⚠️' : 'ℹ️'}
+                  {sizeWarning.type === 'error' ? 'Error' : sizeWarning.type === 'warning' ? 'Warning' : 'Info'}
                 </span>
                 <span className="font-medium text-sm">{sizeWarning.message}</span>
               </div>
