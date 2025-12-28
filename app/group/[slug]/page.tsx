@@ -24,6 +24,8 @@ interface GroupData {
   memberCount: number;
   shipmentCount: number;
   isMember?: boolean; // Whether current user is actually a member (fledged)
+  loggedInUserName?: string | null; // Name of logged in user
+  shipmentConfirmed?: boolean; // Whether logged in user has confirmed shipment
 }
 
 export default function GroupPage() {
@@ -214,21 +216,26 @@ export default function GroupPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{groupData.group.name}</h1>
             <p className="text-gray-600">Secret Santa Group</p>
           </div>
-          {(isCreator || isMember) ? (
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Log Out
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowLoginForm(true)}
-              className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg transition-colors"
-            >
-              Log In
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {groupData.loggedInUserName && (
+              <span className="text-sm text-gray-700 font-medium">{groupData.loggedInUserName}</span>
+            )}
+            {(isCreator || isMember) ? (
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Log Out
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowLoginForm(true)}
+                className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg transition-colors"
+              >
+                Log In
+              </button>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -243,8 +250,15 @@ export default function GroupPage() {
               Members: {groupData.memberCount}
             </h2>
             {groupData.group.status !== 'pending' && (
-              <div className="text-lg font-semibold text-green-600">
-                Gifts Confirmed Shipped: {groupData.shipmentCount} / {groupData.memberCount}
+              <div className="flex items-center gap-2">
+                <div className="text-lg font-semibold text-green-600">
+                  Gifts Confirmed Shipped: {groupData.shipmentCount} / {groupData.memberCount}
+                </div>
+                {groupData.shipmentCount === groupData.memberCount && groupData.memberCount > 0 && (
+                  <span className="px-3 py-1 text-sm font-bold text-red-600 border-2 border-red-600 rounded">
+                    COMPLETE
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -399,7 +413,11 @@ export default function GroupPage() {
                   </button>
                 </div>
               ) : (
-                <AssignmentDisplay groupId={groupData.group.id} slug={slug} />
+                <AssignmentDisplay 
+                  groupId={groupData.group.id} 
+                  slug={slug}
+                  initialShipmentConfirmed={groupData.shipmentConfirmed || false}
+                />
               )}
             </>
           )}

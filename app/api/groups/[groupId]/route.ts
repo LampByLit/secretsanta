@@ -24,9 +24,24 @@ export async function GET(
     
     // Check if the provided email is actually a member (fledged)
     let isMember = false;
+    let loggedInUserName: string | null = null;
+    let shipmentConfirmed = false;
     if (checkEmail) {
       const member = dbHelpers.getMemberByEmail(groupId, checkEmail);
       isMember = !!member;
+      if (member) {
+        loggedInUserName = member.name;
+        // Check if shipment is confirmed
+        const db = getDb();
+        const shipmentCheck = db.prepare('SELECT id FROM shipment_confirmations WHERE group_id = ? AND member_id = ?');
+        const shipment = shipmentCheck.get(groupId, member.id);
+        shipmentConfirmed = !!shipment;
+      } else {
+        // Check if it's the creator
+        if (group.creator_email === checkEmail) {
+          loggedInUserName = 'Creator';
+        }
+      }
     }
     
     // Get shipment count if cycle initiated
@@ -55,6 +70,8 @@ export async function GET(
       memberCount: visibleMembers.length,
       shipmentCount,
       isMember, // Whether the checked email is actually a member (fledged)
+      loggedInUserName, // Name of the logged in user (if checkEmail provided)
+      shipmentConfirmed, // Whether logged in user has confirmed shipment
     });
   } catch (error) {
     console.error('Error fetching group:', error);

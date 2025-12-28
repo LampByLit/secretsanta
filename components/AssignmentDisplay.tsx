@@ -7,9 +7,10 @@ import { decrypt } from '@/lib/crypto/elgamal';
 interface AssignmentDisplayProps {
   groupId: string;
   slug: string;
+  initialShipmentConfirmed?: boolean;
 }
 
-export default function AssignmentDisplay({ groupId, slug }: AssignmentDisplayProps) {
+export default function AssignmentDisplay({ groupId, slug, initialShipmentConfirmed = false }: AssignmentDisplayProps) {
   const [assignment, setAssignment] = useState<any>(null);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ export default function AssignmentDisplay({ groupId, slug }: AssignmentDisplayPr
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showLogin, setShowLogin] = useState(false);
-  const [shipmentConfirmed, setShipmentConfirmed] = useState(false);
+  const [shipmentConfirmed, setShipmentConfirmed] = useState(initialShipmentConfirmed);
 
   useEffect(() => {
     // Check for session cookie
@@ -36,7 +37,13 @@ export default function AssignmentDisplay({ groupId, slug }: AssignmentDisplayPr
       setShowLogin(true);
       setLoading(false);
     }
-  }, [groupId]);
+    
+    // Use initial shipment confirmed status if provided
+    if (initialShipmentConfirmed !== undefined) {
+      setShipmentConfirmed(initialShipmentConfirmed);
+    }
+  }, [groupId, initialShipmentConfirmed]);
+
 
   const loadAssignment = async (memberEmail: string, memberPassword: string) => {
     const response = await fetch(
@@ -94,7 +101,13 @@ export default function AssignmentDisplay({ groupId, slug }: AssignmentDisplayPr
         throw new Error(data.error || 'Failed to confirm shipment');
       }
 
-      setShipmentConfirmed(true);
+      const data = await response.json();
+      // Check if already confirmed or newly confirmed
+      if (data.success) {
+        setShipmentConfirmed(true);
+        // Reload page to update shipment count and show COMPLETE if needed
+        window.location.reload();
+      }
     } catch (err: any) {
       setError(err.message);
     }

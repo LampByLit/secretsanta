@@ -36,9 +36,7 @@ Name: ${santeeName}
 Address: ${santeeAddress}
 Message: ${santeeMessage}
 
-View your group: ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/group/${groupUrl}
-
-Happy gifting!`,
+View your group: ${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}`,
           HTMLPart: `
             <h2>Hello ${santaName}!</h2>
             <p>Your Secret Santa assignment is:</p>
@@ -47,8 +45,7 @@ Happy gifting!`,
               <li><strong>Address:</strong> ${santeeAddress}</li>
               <li><strong>Message:</strong> ${santeeMessage}</li>
             </ul>
-            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/group/${groupUrl}">View your group</a></p>
-            <p>Happy gifting!</p>
+            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}">View your group</a></p>
           `,
         },
       ],
