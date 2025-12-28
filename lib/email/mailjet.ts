@@ -36,9 +36,11 @@ export async function sendAssignmentEmail(
   groupUrl: string
 ) {
   try {
+    const senderEmail = process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com';
     console.log(`[MailJet] Sending assignment email to ${toEmail}...`);
-    console.log(`[MailJet] Sender: ${process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com'}`);
+    console.log(`[MailJet] Sender: ${senderEmail}`);
     console.log(`[MailJet] Group URL: ${groupUrl}`);
+    console.log(`[MailJet] ⚠️  If emails aren't being delivered, verify sender email at: https://app.mailjet.com/account/sender`);
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
