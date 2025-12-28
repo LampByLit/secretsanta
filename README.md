@@ -54,7 +54,7 @@ Deploy to Railway with:
 
 ## Important Notes
 
-- **ElGamal Prime**: The current implementation uses a placeholder prime. Replace with the actual 1024-bit Sophie Germain prime from Tom7's specification.
+- **ElGamal Prime**: Uses the RFC 5114 MODP Group 2 1024-bit safe prime (P = 2q + 1 where q is prime) suitable for ElGamal cryptography.
 - **Password Reset**: After password reset, users may need to re-join the group if private keys were encrypted with the old password.
 - **Minimum Members**: Groups require at least 4 members to initiate the cycle.
 

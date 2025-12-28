@@ -108,10 +108,7 @@ export default function GroupPage() {
       // A user is "fledged" if they're in the members table
       setIsMember(data.isMember || false);
       
-      // Load assignment if cycle initiated
-      if (data.group.status !== 'pending') {
-        loadAssignment(data.group.id);
-      }
+      // Assignment loading is handled by the AssignmentDisplay component
       
       setLoading(false);
     } catch (err: any) {
@@ -120,10 +117,6 @@ export default function GroupPage() {
     }
   };
 
-  const loadAssignment = async (groupId: string) => {
-    // Assignment loading will be handled by AssignmentDisplay component
-    // This is a placeholder
-  };
 
   const handleInitiateCycle = async () => {
     if (!groupData || !isCreator) return;

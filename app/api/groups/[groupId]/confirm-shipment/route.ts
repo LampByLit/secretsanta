@@ -56,7 +56,7 @@ export async function POST(
 
     // Check if all members have confirmed
     const group = dbHelpers.getGroupById(groupId);
-    if (group && group.status === 'cycle_initiated') {
+    if (group && (group.status === 'messages_ready' || group.status === 'cycle_initiated')) {
       const members = dbHelpers.getMembersByGroup(groupId, false);
       const shipmentCount = dbHelpers.getShipmentCount(groupId);
       

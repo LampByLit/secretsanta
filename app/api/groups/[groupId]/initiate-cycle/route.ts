@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { generateKeyPair, encrypt, decrypt, encodeMessage, P, G } from '@/lib/crypto/elgamal';
 
 export async function POST(
@@ -33,6 +34,16 @@ export async function POST(
       );
     }
 
+    // Verify creator password
+    const isPasswordValid = await bcrypt.compare(creatorPassword, group.creator_password_hash);
+    if (!isPasswordValid) {
+      console.error(`[Initiate Cycle] Unauthorized: Invalid password for ${creatorEmail}`);
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     // Check if already initiated
     if (group.status !== 'pending') {
       console.log(`[Initiate Cycle] Group ${groupId} already initiated with status: ${group.status}`);
@@ -54,8 +65,8 @@ export async function POST(
       );
     }
 
-    // Randomize order
-    const shuffled = [...members].sort(() => Math.random() - 0.5);
+    // Randomize order using cryptographically secure random
+    const shuffled = secureShuffle([...members]);
     const chair = shuffled[shuffled.length - 1];
     console.log(`[Initiate Cycle] Shuffled ${shuffled.length} members, chair is: ${chair.name}`);
 
@@ -83,13 +94,13 @@ export async function POST(
 
     // Simulate chain passing (shuffle encrypted keys)
     console.log(`[Initiate Cycle] Simulating chain passing (shuffling encrypted keys)...`);
-    encryptedKeys.sort(() => Math.random() - 0.5);
+    const shuffledEncryptedKeys = secureShuffle(encryptedKeys);
 
     // Chair decrypts all keys
     console.log(`[Initiate Cycle] Chair decrypting all keys...`);
     const decryptedKeys: Array<{ memberId: string; publicKey: BigInt }> = [];
     
-    for (const item of encryptedKeys) {
+    for (const item of shuffledEncryptedKeys) {
       const encrypted = {
         c1: BigInt(item.encrypted.c1),
         c2: BigInt(item.encrypted.c2),
@@ -215,5 +226,23 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+/**
+ * Cryptographically secure shuffle using Fisher-Yates algorithm
+ * Uses crypto.getRandomValues() instead of Math.random()
+ */
+function secureShuffle<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  const randomValues = new Uint32Array(shuffled.length);
+  crypto.getRandomValues(randomValues);
+  
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    // Use modulo to get a random index from 0 to i
+    const j = randomValues[i] % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  return shuffled;
 }
 

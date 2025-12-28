@@ -28,7 +28,7 @@ export async function generateKeyPair(): Promise<KeyPair> {
   const min = BigInt(2);
   const range = max - min;
   
-  // Generate random number (simplified - use crypto.randomBytes in production)
+  // Generate cryptographically secure random number using Web Crypto API
   const randomBytes = new Uint8Array(128);
   crypto.getRandomValues(randomBytes);
   

@@ -5,14 +5,42 @@ import { decryptPrivateKey } from '@/lib/crypto/aes';
 import { decrypt, decodeMessage, P, G } from '@/lib/crypto/elgamal';
 import { modPow } from 'bigint-crypto-utils';
 
+/**
+ * Props for the AssignmentDisplay component
+ */
 interface AssignmentDisplayProps {
+  /** Unique identifier of the Secret Santa group */
   groupId: string;
+  /** URL slug of the group for display purposes */
   slug: string;
+  /** Current status of the group ('pending', 'messages_ready', etc.) */
   groupStatus?: string;
+  /** Whether the user has already confirmed gift shipment */
   initialShipmentConfirmed?: boolean;
 }
 
-export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pending', initialShipmentConfirmed = false }: AssignmentDisplayProps) {
+/**
+ * AssignmentDisplay Component
+ *
+ * Displays a Secret Santa assignment to an authenticated group member.
+ * Handles both traditional assignment loading and cryptographic message decryption.
+ *
+ * Features:
+ * - Session cookie-based authentication
+ * - Support for both old and new assignment retrieval methods
+ * - Client-side cryptographic decryption of assignments
+ * - Shipment confirmation tracking
+ * - Progressive disclosure of assignment information
+ *
+ * @param props - Component properties
+ * @returns React component
+ */
+export default function AssignmentDisplay({
+  groupId,
+  slug,
+  groupStatus = 'pending',
+  initialShipmentConfirmed = false
+}: AssignmentDisplayProps) {
   const [assignment, setAssignment] = useState<any>(null);
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -100,23 +128,14 @@ export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pendin
         throw new Error('Public key not found');
       }
 
-      // Step 3: Decrypt private key with password
+      // Decrypt the stored private key using the user's password
       const privateKeyString = await decryptPrivateKey(privateKeyEncrypted, password);
       const privateKeyBigInt = BigInt(privateKeyString);
-      console.log(`[Decrypt] Private key (first 50 chars):`, privateKeyString.substring(0, 50));
-      console.log(`[Decrypt] Private key bigint:`, privateKeyBigInt.toString().substring(0, 50));
-      
-      // Verify private key matches public key
+
+      // Verify that the decrypted private key corresponds to the stored public key
       const computedPublicKey = await modPow(G, privateKeyBigInt, P);
-      console.log(`[Decrypt] Computed public key from private key:`, computedPublicKey.toString().substring(0, 50));
-      console.log(`[Decrypt] Stored public key:`, publicKey.substring(0, 50));
       if (computedPublicKey.toString() !== publicKey) {
-        console.error(`[Decrypt] WARNING: Private key does NOT match public key!`);
-        console.error(`[Decrypt] Computed: ${computedPublicKey.toString()}`);
-        console.error(`[Decrypt] Stored: ${publicKey}`);
         throw new Error('Private key does not match public key. This indicates a key storage/retrieval issue.');
-      } else {
-        console.log(`[Decrypt] ✓ Private key matches public key`);
       }
 
       // Step 4: Try decrypting each encrypted message
@@ -129,29 +148,23 @@ export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pendin
             c2: BigInt(encryptedMsg.c2),
           };
           
+          // Attempt to decrypt this message with our private key
           const decryptedBigInt = await decrypt(privateKeyBigInt, encrypted);
-          console.log(`[Decrypt] Message ${i + 1}: Decrypted bigint:`, decryptedBigInt.toString());
-          
           const decoded = decodeMessage(decryptedBigInt);
-          console.log(`[Decrypt] Message ${i + 1}: Decoded:`, decoded);
-          
-          // Validate that we got meaningful data
+
+          // Validate that we successfully decoded meaningful recipient data
           if (decoded.name && decoded.address && decoded.message) {
-            // Successfully decrypted! This is our assignment
+            // Successfully decrypted our assignment
             decryptedAssignment = {
               santeeName: decoded.name,
               santeeAddress: decoded.address,
               santeeMessage: decoded.message,
             };
-            console.log(`[Decrypt] Successfully decrypted assignment:`, decryptedAssignment);
             break;
-          } else {
-            console.warn(`[Decrypt] Message ${i + 1}: Decoded but empty values:`, decoded);
-            // Continue trying other messages
           }
+          // If decoding failed or produced empty data, continue to next message
         } catch (e: any) {
-          // This message wasn't for us, try next one
-          console.log(`[Decrypt] Message ${i + 1}: Failed to decrypt (expected for wrong key):`, e.message);
+          // This message was not encrypted for us, try the next one
           continue;
         }
       }
@@ -168,9 +181,9 @@ export default function AssignmentDisplay({ groupId, slug, groupStatus = 'pendin
       });
 
       if (!decryptResponse.ok) {
+        // Log error but continue - we successfully decrypted the assignment
         const data = await decryptResponse.json();
-        console.error('Failed to mark as decrypted:', data.error);
-        // Continue anyway - we have the assignment
+        console.error('Failed to mark assignment as decrypted:', data.error);
       }
 
       // Step 6: Set assignment and show it

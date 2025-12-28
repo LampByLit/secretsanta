@@ -4,15 +4,40 @@ import { useState } from 'react';
 import { encryptPrivateKey } from '@/lib/crypto/aes';
 import { generateKeyPair } from '@/lib/crypto/elgamal';
 
+/**
+ * Props for the JoinForm component
+ */
 interface JoinFormProps {
+  /** Unique identifier of the Secret Santa group to join */
   groupId: string;
+  /** Callback function to close the join form modal */
   onClose: () => void;
+  /** Callback function called when group join is successful */
   onSuccess: () => void;
+  /** Optional: Pre-fill email field for group creator */
   creatorEmail?: string;
+  /** Optional: Pre-fill name field for group creator */
   creatorName?: string;
 }
 
+/**
+ * JoinForm Component
+ *
+ * Modal form for joining a Secret Santa group. Handles client-side key generation,
+ * form validation, and submission to join an existing group.
+ *
+ * Features:
+ * - Client-side ElGamal key pair generation
+ * - Password-based private key encryption
+ * - Form validation and error handling
+ * - Session cookie management
+ * - Responsive modal design
+ *
+ * @param props - Component properties
+ * @returns React component
+ */
 export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, creatorName }: JoinFormProps) {
+  // Form state management with pre-filled values for group creator
   const [formData, setFormData] = useState({
     name: creatorName || '',
     email: creatorEmail || '',
@@ -23,19 +48,31 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * Handle form submission for joining the Secret Santa group
+   *
+   * Performs the following steps:
+   * 1. Generates ElGamal key pair client-side for cryptographic operations
+   * 2. Encrypts the private key with the user's password for secure storage
+   * 3. Submits member information to the server
+   * 4. Sets session cookie for authentication
+   * 5. Calls success callback on completion
+   *
+   * @param e - Form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Step 1: Generate key pair client-side
+      // Generate ElGamal key pair for cryptographic Secret Santa operations
       const keyPair = await generateKeyPair();
-      
-      // Step 2: Encrypt private key with password
+
+      // Encrypt private key with user's password for secure server storage
       const encryptedPrivateKey = await encryptPrivateKey(keyPair.privateKey.toString(), formData.password);
 
-      // Step 3: Join group with public key and encrypted private key
+      // Submit join request with public key and encrypted private key
       const joinResponse = await fetch(`/api/groups/${groupId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,10 +86,10 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
       const joinData = await joinResponse.json();
 
       if (!joinResponse.ok) {
-        throw new Error(joinData.error || 'Failed to join group');
+        throw new Error(joinData.error || 'Failed to join Secret Santa group');
       }
 
-      // Store session cookie
+      // Store authentication cookie (expires in 1 year)
       document.cookie = `santa_member_${groupId}=${formData.email}; path=/; max-age=31536000`;
 
       onSuccess();
