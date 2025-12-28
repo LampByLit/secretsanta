@@ -201,12 +201,19 @@ export default function GroupPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{groupData.group.name}</h1>
             <p className="text-gray-600">Secret Santa Group</p>
           </div>
-          {(isCreator || isMember) && (
+          {(isCreator || isMember) ? (
             <button
               onClick={handleLogout}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Log Out
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowLoginForm(true)}
+              className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg transition-colors"
+            >
+              Log In
             </button>
           )}
         </div>
@@ -282,24 +289,16 @@ export default function GroupPage() {
           {groupData.group.status === 'pending' && (
             <>
               {!isMember && (
-                <div className="space-y-3 mb-4">
-                  <button
-                    onClick={() => setShowJoinForm(true)}
-                    className={`w-full py-3 rounded-lg font-semibold transition-colors ${
-                      isCreator
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    JOIN THIS SECRET SANTA GROUP
-                  </button>
-                  <button
-                    onClick={() => setShowLoginForm(true)}
-                    className="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
-                  >
-                    LOG IN
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowJoinForm(true)}
+                  className={`w-full py-3 rounded-lg font-semibold transition-colors mb-4 ${
+                    isCreator
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  JOIN THIS SECRET SANTA GROUP
+                </button>
               )}
               
               {isCreator && (
