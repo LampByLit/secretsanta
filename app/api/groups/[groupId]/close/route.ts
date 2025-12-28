@@ -49,7 +49,7 @@ export async function POST(
     // Check if group is in 'open' status
     if (group.status !== 'open') {
       return NextResponse.json(
-        { error: `Group cannot be closed. Current status: ${group.status}` },
+        { error: `Current status: ${group.status}` },
         { status: 400 }
       );
     }
