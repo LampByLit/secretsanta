@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import JoinForm from '@/components/JoinForm';
-import LoginForm from '@/components/LoginForm';
+import LoginForm, { performClientSideBackfill } from '@/components/LoginForm';
 import AssignmentDisplay from '@/components/AssignmentDisplay';
 
 interface Member {
