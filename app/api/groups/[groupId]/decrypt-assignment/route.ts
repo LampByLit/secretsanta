@@ -37,30 +37,22 @@ export async function POST(
 
     // Check if already decrypted
     const alreadyDecrypted = dbHelpers.isAssignmentDecrypted(groupId, member.id);
-    console.log(`[Decrypt Assignment] Member ${member.id} (${member.email}) - alreadyDecrypted: ${alreadyDecrypted}`);
     
     if (!alreadyDecrypted) {
       // Mark as decrypted
       dbHelpers.markAssignmentDecrypted(groupId, member.id);
-      console.log(`[Decrypt Assignment] Marked assignment as decrypted for ${member.id}`);
       
       // Get assignment to send email
       const assignment = dbHelpers.getAssignment(groupId, member.id);
-      console.log(`[Decrypt Assignment] Assignment found:`, assignment ? `santa_id=${assignment.santa_id}, santee_id=${assignment.santee_id}` : 'NOT FOUND');
-      
       if (assignment) {
         const db = getDb();
         const santeeStmt = db.prepare('SELECT name, address, message FROM members WHERE id = ?');
         const santee = santeeStmt.get(assignment.santee_id) as { name: string; address: string; message: string } | undefined;
-        console.log(`[Decrypt Assignment] Santee found:`, santee ? `name=${santee.name}` : 'NOT FOUND');
         
         if (santee) {
           const group = dbHelpers.getGroupById(groupId);
-          console.log(`[Decrypt Assignment] Group found:`, group ? `unique_url=${group.unique_url}` : 'NOT FOUND');
-          
           if (group) {
             try {
-              console.log(`[Decrypt Assignment] Attempting to send email to ${member.email}...`);
               await sendAssignmentEmail(
                 member.email,
                 member.name,
@@ -69,23 +61,14 @@ export async function POST(
                 santee.message,
                 group.unique_url
               );
-              console.log(`[Decrypt Assignment] ✓ Email sent successfully to ${member.email} (${member.name})`);
+              console.log(`[Decrypt Assignment] ✓ Email sent to ${member.email} (${member.name})`);
             } catch (emailError: any) {
               console.error(`[Decrypt Assignment] ✗ Failed to send email to ${member.email}:`, emailError.message || emailError);
-              console.error(`[Decrypt Assignment] Email error details:`, emailError);
               // Continue even if email fails
             }
-          } else {
-            console.error(`[Decrypt Assignment] Group ${groupId} not found - cannot send email`);
           }
-        } else {
-          console.error(`[Decrypt Assignment] Santee ${assignment.santee_id} not found - cannot send email`);
         }
-      } else {
-        console.error(`[Decrypt Assignment] Assignment not found for member ${member.id} - cannot send email`);
       }
-    } else {
-      console.log(`[Decrypt Assignment] Assignment already decrypted - skipping email`);
     }
 
     // Get decryption count

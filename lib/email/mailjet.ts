@@ -5,28 +5,6 @@ const mailjet = new Mailjet({
   apiSecret: process.env.MAILJET_SECRET_KEY || 'a1b411cb0d8032437c1bf72c32badb41',
 });
 
-// Check sender email verification status (call this once to debug)
-export async function checkSenderStatus() {
-  try {
-    const senderEmail = process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com';
-    console.log(`[MailJet] Checking sender status for: ${senderEmail}`);
-    
-    // Try to get sender info - this will fail if not verified
-    const result = await mailjet.get('sender').request({
-      Email: senderEmail,
-    });
-    
-    console.log(`[MailJet] Sender status:`, JSON.stringify(result.body, null, 2));
-    return result.body;
-  } catch (error: any) {
-    console.error(`[MailJet] Sender check failed (likely not verified):`, error.message || error);
-    if (error.response) {
-      console.error(`[MailJet] Error response:`, JSON.stringify(error.response.body, null, 2));
-    }
-    return null;
-  }
-}
-
 export async function sendAssignmentEmail(
   toEmail: string,
   santaName: string,
@@ -36,12 +14,6 @@ export async function sendAssignmentEmail(
   groupUrl: string
 ) {
   try {
-    const senderEmail = process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com';
-    console.log(`[MailJet] Sending assignment email to ${toEmail}...`);
-    console.log(`[MailJet] Sender: ${senderEmail}`);
-    console.log(`[MailJet] Group URL: ${groupUrl}`);
-    console.log(`[MailJet] ⚠️  If emails aren't being delivered, verify sender email at: https://app.mailjet.com/account/sender`);
-    
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
         {
@@ -64,7 +36,7 @@ Name: ${santeeName}
 Address: ${santeeAddress}
 Message: ${santeeMessage}
 
-View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
+View your group: ${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}`,
           HTMLPart: `
             <h2>Hello ${santaName}!</h2>
             <p>Your Secret Santa assignment is:</p>
@@ -73,37 +45,15 @@ View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
               <li><strong>Address:</strong> ${santeeAddress}</li>
               <li><strong>Message:</strong> ${santeeMessage}</li>
             </ul>
-            <p><a href="https://secretestsanta.up.railway.app/group/${groupUrl}">View your group</a></p>
+            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app'}/group/${groupUrl}">View your group</a></p>
           `,
         },
       ],
     });
 
-    console.log(`[MailJet] Email sent successfully. Response:`, JSON.stringify(result.body, null, 2));
-    
-    // Extract MessageID for tracking
-    const body = result.body as any;
-    const messageId = body?.Messages?.[0]?.To?.[0]?.MessageID;
-    const messageUUID = body?.Messages?.[0]?.To?.[0]?.MessageUUID;
-    
-    if (messageId) {
-      console.log(`[MailJet] MessageID: ${messageId}, UUID: ${messageUUID}`);
-      console.log(`[MailJet] Check delivery status at: https://app.mailjet.com/statistics/message/${messageId}`);
-    }
-    
-    // Note: MailJet "success" means the email was accepted, not necessarily delivered
-    // Common issues:
-    // 1. Sender email not verified in MailJet (Account Settings → Sender & Domains)
-    // 2. MailJet sandbox mode (free tier) - check account status
-    // 3. SPF/DKIM not configured for domain
-    
     return result;
-  } catch (error: any) {
-    console.error(`[MailJet] Error sending email to ${toEmail}:`, error.message || error);
-    console.error(`[MailJet] Error details:`, error);
-    if (error.response) {
-      console.error(`[MailJet] Error response:`, JSON.stringify(error.response.body, null, 2));
-    }
+  } catch (error) {
+    console.error('Error sending email:', error);
     throw error;
   }
 }
@@ -114,7 +64,7 @@ export async function sendPasswordResetEmail(
   groupUrl: string
 ) {
   try {
-    const resetUrl = `https://secretestsanta.up.railway.app/group/${groupUrl}/reset?token=${resetToken}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/group/${groupUrl}/reset?token=${resetToken}`;
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
