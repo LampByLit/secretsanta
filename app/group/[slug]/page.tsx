@@ -281,13 +281,25 @@ export default function GroupPage() {
 
           {groupData.group.status === 'pending' && (
             <>
-              {isCreator && !isMember && (
-                <button
-                  onClick={() => setShowJoinForm(true)}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 mb-4 transition-colors"
-                >
-                  JOIN THIS SECRET SANTA GROUP
-                </button>
+              {!isMember && (
+                <div className="space-y-3 mb-4">
+                  <button
+                    onClick={() => setShowJoinForm(true)}
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                      isCreator
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    JOIN THIS SECRET SANTA GROUP
+                  </button>
+                  <button
+                    onClick={() => setShowLoginForm(true)}
+                    className="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                  >
+                    LOG IN
+                  </button>
+                </div>
               )}
               
               {isCreator && (
@@ -360,14 +372,6 @@ export default function GroupPage() {
                 </>
               )}
 
-              {!isCreator && !isMember && (
-                <button
-                  onClick={() => setShowJoinForm(true)}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                >
-                  JOIN THIS SECRET SANTA GROUP
-                </button>
-              )}
             </>
           )}
 
@@ -379,7 +383,7 @@ export default function GroupPage() {
                     onClick={() => setShowLoginForm(true)}
                     className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    Log In to View Your Assignment
+                    LOG IN TO VIEW YOUR ASSIGNMENT
                   </button>
                 </div>
               ) : (
