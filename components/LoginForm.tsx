@@ -37,13 +37,19 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
       const data = await response.json();
       
       // Perform client-side backfill if needed (PRIVACY-AIRTIGHT: password never leaves browser)
-      if (!data.isCreator && (data.groupStatus === 'open' || data.groupStatus === 'closed')) {
+      // Creator can also be a member, so check if they have a memberId
+      const isMember = !!(data.memberId || (!data.isCreator && data.success));
+      if (isMember && (data.groupStatus === 'open' || data.groupStatus === 'closed')) {
         try {
+          console.log(`[LoginForm] Performing backfill for ${data.isCreator ? 'creator' : 'member'}: ${email}`);
           await performClientSideBackfill(groupId, email, password);
+          console.log(`[LoginForm] ✓ Backfill completed for ${email}`);
         } catch (backfillError: any) {
-          console.error('Backfill error (non-blocking):', backfillError.message);
+          console.error(`[LoginForm] Backfill error (non-blocking) for ${email}:`, backfillError.message);
           // Don't fail login if backfill fails - it's not critical
         }
+      } else if (data.isCreator && !data.memberId) {
+        console.log(`[LoginForm] Creator ${email} is not a member yet - they need to join the group first`);
       }
       
       // Store member session cookie

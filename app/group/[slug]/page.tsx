@@ -415,7 +415,7 @@ export default function GroupPage() {
             </div>
           )}
 
-          {groupData.group.status === 'open' && (
+          {(groupData.group.status === 'open' || (groupData.group.status === 'closed' && isCreator && !isMember)) && (
             <>
               {!isMember && (
                 <button
@@ -426,7 +426,9 @@ export default function GroupPage() {
                       : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
                 >
-                  JOIN THIS SECRET SANTA GROUP
+                  {groupData.group.status === 'closed' && isCreator
+                    ? 'JOIN AS MEMBER (Required to Complete Setup)'
+                    : 'JOIN THIS SECRET SANTA GROUP'}
                 </button>
               )}
               

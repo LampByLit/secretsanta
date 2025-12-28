@@ -92,11 +92,17 @@ export async function POST(
     }
 
     // Ensure the gift exchange hasn't started yet (only allow joining when status is 'open')
-    if (group.status !== 'open') {
+    // Exception: Creator can always join their own group, even when closed
+    const isCreator = group.creator_email.toLowerCase().trim() === email.toLowerCase().trim();
+    if (group.status !== 'open' && !isCreator) {
       return NextResponse.json(
         { error: 'Cannot join: the group is no longer accepting new members' },
         { status: 400 }
       );
+    }
+    
+    if (group.status !== 'open' && isCreator) {
+      console.log(`[Join] Creator ${email} joining their own group ${groupId} even though status is '${group.status}'`);
     }
 
     // Check for duplicate email addresses within the group using emailHash
