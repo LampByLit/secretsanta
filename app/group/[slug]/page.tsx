@@ -31,6 +31,7 @@ export default function GroupPage() {
   const [groupData, setGroupData] = useState<GroupData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInitiateConfirm, setShowInitiateConfirm] = useState(false);
@@ -72,6 +73,24 @@ export default function GroupPage() {
         .split('; ')
         .find(row => row.startsWith(`santa_creator_${data.group.id}`));
       setIsCreator(!!creatorCookie);
+      
+      // Check if user is already a member (from cookie)
+      const memberCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`santa_member_${data.group.id}`));
+      
+      if (memberCookie) {
+        const memberEmail = memberCookie.split('=')[1];
+        // Check if this email is in the members list
+        const userIsMember = data.allMembers.some(m => {
+          // We need to check by email, but we don't have email in the response
+          // So we'll check if there's a member cookie and assume they're a member
+          return true; // If cookie exists, they're a member
+        });
+        setIsMember(!!memberCookie);
+      } else {
+        setIsMember(false);
+      }
       
       // Load assignment if cycle initiated
       if (data.group.status !== 'pending') {
@@ -238,14 +257,17 @@ export default function GroupPage() {
 
           {groupData.group.status === 'pending' && (
             <>
+              {isCreator && !isMember && (
+                <button
+                  onClick={() => setShowJoinForm(true)}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 mb-4 transition-colors"
+                >
+                  JOIN THIS SECRET SANTA GROUP
+                </button>
+              )}
+              
               {isCreator && (
                 <>
-                  <button
-                    onClick={() => setShowJoinForm(true)}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 mb-4 transition-colors"
-                  >
-                    JOIN THIS SECRET SANTA GROUP
-                  </button>
 
                   <button
                     onClick={() => setShowInitiateConfirm(true)}
@@ -314,7 +336,7 @@ export default function GroupPage() {
                 </>
               )}
 
-              {!isCreator && (
+              {!isCreator && !isMember && (
                 <button
                   onClick={() => setShowJoinForm(true)}
                   className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
