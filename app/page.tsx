@@ -27,15 +27,15 @@ export default function Home() {
           <span className="text-gray-500">[placeholder WIP]</span>{" "}
           Tom7's Secretest Santa Typescript Unwrapping.
         </div>
+        <div className="text-center text-green-600 text-sm">
+          Once you have created your <span className="text-red-600 font-bold">GROUP</span>, you can <span className="text-red-600 font-bold">SHARE</span> the <span className="text-red-600 font-bold">URL</span> with your <span className="text-red-600 font-bold">FRIENDS</span> and <span className="text-red-600 font-bold">FAMILY</span>.
+        </div>
         <Link
           href="/create"
           className="rounded-lg bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-md hover:bg-blue-700 transition-colors"
         >
           Create a New Secret Santa Group
         </Link>
-        <div className="text-center text-green-600 text-sm">
-          Once you have created your <span className="text-red-600 font-bold">GROUP</span>, you can <span className="text-red-600 font-bold">SHARE</span> the <span className="text-red-600 font-bold">URL</span> with your <span className="text-red-600 font-bold">FRIENDS</span> and <span className="text-red-600 font-bold">FAMILY</span>.
-        </div>
       </div>
     </main>
   );
