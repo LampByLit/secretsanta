@@ -13,20 +13,25 @@ export function getDb(): Database.Database {
     const dbDir = path.dirname(DB_PATH);
     try {
       if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true });
+        fs.mkdirSync(dbDir, { recursive: true, mode: 0o755 });
       }
-    } catch (error) {
-      console.error(`Failed to create database directory: ${dbDir}`, error);
-      throw error;
+      // Verify directory is writable
+      fs.accessSync(dbDir, fs.constants.W_OK);
+    } catch (error: any) {
+      console.error(`Failed to create/access database directory: ${dbDir}`, error);
+      // Don't throw - let Railway logs show the error, but don't crash the app
+      // The error will surface when an API route tries to use the DB
+      throw new Error(`Database directory error: ${error.message}`);
     }
     
     try {
       db = new Database(DB_PATH);
       db.pragma('journal_mode = WAL');
       initializeSchema(db);
-    } catch (error) {
+      console.log(`Database initialized at: ${DB_PATH}`);
+    } catch (error: any) {
       console.error(`Failed to open database at: ${DB_PATH}`, error);
-      throw error;
+      throw new Error(`Database initialization error: ${error.message}`);
     }
   }
   return db;
