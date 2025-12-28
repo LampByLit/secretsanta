@@ -13,7 +13,7 @@ export interface Member {
   id: string;
   group_id: string;
   name: string; // NOT encrypted - needs to be visible in group
-  email: string; // AES encrypted (client-side with password)
+  email: string; // Plaintext email (for notifications)
   email_hash: string; // SHA-256 hash of email for lookups
   password_hash: string;
   message: string; // AES encrypted (client-side with password)

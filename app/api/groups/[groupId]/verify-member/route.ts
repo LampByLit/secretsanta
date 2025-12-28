@@ -3,7 +3,6 @@ import { getDb, dbHelpers } from '@/lib/db/client';
 import bcrypt from 'bcryptjs';
 import { checkRateLimit, getClientIdentifier } from '@/lib/utils/rate-limit';
 import { validateEmail } from '@/lib/utils/validation';
-import { sendGroupClosedEmail } from '@/lib/email/mailjet';
 
 export async function POST(
   request: NextRequest,
@@ -86,22 +85,6 @@ export async function POST(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
-    }
-
-    // Send group closed email to member if group is closed (they need to log in to complete backfill)
-    // We can use the plaintext email from the login request
-    if (group.status === 'closed') {
-      try {
-        await sendGroupClosedEmail(
-          email, // Plaintext email from login request
-          member.name,
-          group.unique_url
-        );
-        console.log(`[Verify Member] Sent group closed email to ${email} (${member.name})`);
-      } catch (emailError: any) {
-        console.error(`[Verify Member] Failed to send group closed email to ${email}:`, emailError.message || emailError);
-        // Don't fail login if email fails - continue
-      }
     }
 
     // Return success - member exists and credentials are valid

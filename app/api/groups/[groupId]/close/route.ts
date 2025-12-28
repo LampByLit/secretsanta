@@ -5,9 +5,7 @@ import { sendGroupClosedEmail } from '@/lib/email/mailjet';
 
 /**
  * Close a Secret Santa group (disallow new members)
- * Sends notification email to creator with group status
- * Note: Cannot send emails to members directly as their emails are encrypted
- * Members will see the status when they log in
+ * Sends notification emails to creator and all members
  */
 export async function POST(
   request: NextRequest,
@@ -66,7 +64,7 @@ export async function POST(
     const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
     const completedCount = activeMembers.length - backfillStatus.missingMembers.length;
 
-    // Send email to creator (we can't send to members as their emails are encrypted)
+    // Send email to creator
     try {
       await sendGroupClosedEmail(
         creatorEmail,
@@ -76,6 +74,21 @@ export async function POST(
     } catch (emailError: any) {
       console.error(`[Close Group] Failed to send email to creator:`, emailError.message || emailError);
       // Continue even if email fails
+    }
+
+    // Send email to all members
+    for (const member of activeMembers) {
+      try {
+        await sendGroupClosedEmail(
+          member.email, // Plaintext email
+          member.name,
+          group.unique_url
+        );
+        console.log(`[Close Group] ✓ Email sent to ${member.email} (${member.name})`);
+      } catch (emailError: any) {
+        console.error(`[Close Group] ✗ Failed to send email to ${member.email} (${member.name}):`, emailError.message || emailError);
+        // Continue sending to other members even if one fails
+      }
     }
 
     return NextResponse.json({

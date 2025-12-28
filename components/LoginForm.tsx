@@ -152,11 +152,12 @@ async function performClientSideBackfill(
   }
 
   // Decrypt member's own data CLIENT-SIDE (password never leaves browser)
+  // Email is now plaintext, so we pass it directly
   const decryptedData = await decryptMemberData(
     backfillData.memberData.name,
     backfillData.memberData.addressEncrypted,
     backfillData.memberData.messageEncrypted,
-    backfillData.memberData.emailEncrypted,
+    backfillData.memberData.email, // Plaintext email (not encrypted)
     password
   );
 

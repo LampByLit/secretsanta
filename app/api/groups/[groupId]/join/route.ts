@@ -39,11 +39,11 @@ export async function POST(
   { params }: { params: { groupId: string } }
 ) {
   try {
-    // Parse encrypted member information and cryptographic keys from request
-    // Note: name is NOT encrypted - it needs to be visible in the group
+    // Parse member information and cryptographic keys from request
+    // Note: name and email are NOT encrypted - they need to be visible/accessible
     const { 
       name, // Not encrypted - needs to be visible
-      emailEncrypted, 
+      email, // Plaintext email for notifications
       addressEncrypted, 
       messageEncrypted, 
       emailHash,
@@ -55,9 +55,9 @@ export async function POST(
     const { groupId } = params;
 
     // Validate all required fields are provided
-    if (!name || !emailEncrypted || !addressEncrypted || !messageEncrypted || !emailHash || !password || !publicKey || !encryptedPrivateKey) {
+    if (!name || !email || !addressEncrypted || !messageEncrypted || !emailHash || !password || !publicKey || !encryptedPrivateKey) {
       return NextResponse.json(
-        { error: 'All fields are required: name, emailEncrypted, addressEncrypted, messageEncrypted, emailHash, password, publicKey, and encryptedPrivateKey' },
+        { error: 'All fields are required: name, email, addressEncrypted, messageEncrypted, emailHash, password, publicKey, and encryptedPrivateKey' },
         { status: 400 }
       );
     }
@@ -70,7 +70,7 @@ export async function POST(
       );
     }
 
-    // Rate limiting (use emailHash as identifier since email is encrypted)
+    // Rate limiting (use emailHash as identifier)
     const identifier = getClientIdentifier(request, emailHash);
     const rateLimit = checkRateLimit(identifier, { maxRequests: 20, windowMs: 60 * 60 * 1000 });
     if (rateLimit.rateLimited) {
@@ -125,7 +125,7 @@ export async function POST(
       memberId,
       groupId,
       name, // Name in cleartext - needs to be visible
-      emailEncrypted, // Encrypted email
+      email, // Plaintext email for notifications
       emailHash, // SHA-256 hash for lookups
       passwordHash,
       messageEncrypted, // Encrypted message

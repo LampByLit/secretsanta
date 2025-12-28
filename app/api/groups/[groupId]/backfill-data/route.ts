@@ -89,7 +89,7 @@ export async function GET(
           name: member.name,
           addressEncrypted: member.address,
           messageEncrypted: member.message,
-          emailEncrypted: member.email,
+          email: member.email, // Plaintext email
         }
       });
     }
@@ -105,7 +105,7 @@ export async function GET(
         name: member.name,
         addressEncrypted: member.address, // Still encrypted - client will decrypt
         messageEncrypted: member.message, // Still encrypted - client will decrypt
-        emailEncrypted: member.email, // Still encrypted - client will decrypt
+        email: member.email, // Plaintext email (not encrypted)
       }
     });
   } catch (error) {

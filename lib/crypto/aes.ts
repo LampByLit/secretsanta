@@ -140,31 +140,30 @@ export async function encryptMemberData(
   name: string; // Not encrypted - needs to be visible
   addressEncrypted: string;
   messageEncrypted: string;
-  emailEncrypted: string;
+  email: string; // Not encrypted - needs to be accessible for notifications
 }> {
-  const [addressEncrypted, messageEncrypted, emailEncrypted] = await Promise.all([
+  const [addressEncrypted, messageEncrypted] = await Promise.all([
     encryptData(address, password),
     encryptData(message, password),
-    encryptData(email, password),
   ]);
 
   return {
     name, // Return name as-is (not encrypted)
     addressEncrypted,
     messageEncrypted,
-    emailEncrypted,
+    email, // Return email as-is (not encrypted)
   };
 }
 
 /**
- * Decrypt member data fields (address, message, email)
- * Name is passed through as-is (not encrypted)
+ * Decrypt member data fields (address, message)
+ * Name and email are passed through as-is (not encrypted)
  */
 export async function decryptMemberData(
   name: string, // Not encrypted - pass through as-is
   addressEncrypted: string,
   messageEncrypted: string,
-  emailEncrypted: string,
+  email: string, // Not encrypted - pass through as-is
   password: string
 ): Promise<{
   name: string;
@@ -172,10 +171,9 @@ export async function decryptMemberData(
   message: string;
   email: string;
 }> {
-  const [address, message, email] = await Promise.all([
+  const [address, message] = await Promise.all([
     decryptData(addressEncrypted, password),
     decryptData(messageEncrypted, password),
-    decryptData(emailEncrypted, password),
   ]);
 
   return { name, address, message, email };
