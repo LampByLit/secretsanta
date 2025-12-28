@@ -64,6 +64,63 @@ export default function GroupPage() {
     loadGroupData();
   }, [slug]);
 
+  // Poll for status updates when group is closed and user is creator
+  useEffect(() => {
+    // Only poll if group is closed, user is creator, and we have group data
+    if (!groupData || groupData.group.status !== 'closed' || !isCreator) {
+      return;
+    }
+
+    const groupId = groupData.group.id;
+    let isPolling = true;
+    
+    // Poll every 3 seconds to check if status changed to 'ready'
+    const pollInterval = setInterval(async () => {
+      if (!isPolling) return; // Stop if we're no longer polling
+      
+      try {
+        // Check for creator cookie for email
+        const creatorCookie = document.cookie
+          .split('; ')
+          .find(row => row.startsWith(`santa_creator_${groupId}`));
+        const creatorEmailFromCookie = creatorCookie ? creatorCookie.split('=')[1] : null;
+        
+        // Build URL with email check if we have an email
+        const url = creatorEmailFromCookie 
+          ? `/api/groups/${groupId}?checkEmail=${encodeURIComponent(creatorEmailFromCookie)}`
+          : `/api/groups/${groupId}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) return; // Silently fail if request fails
+        
+        const data = await response.json();
+        
+        // If status changed to 'ready', update state and stop polling
+        if (data.group && data.group.status === 'ready') {
+          setGroupData(data);
+          isPolling = false;
+          clearInterval(pollInterval);
+        } else if (data.group && data.group.status === 'closed') {
+          // Update group data to reflect any changes (member count, etc.)
+          setGroupData(data);
+        } else {
+          // Status changed to something else, stop polling
+          isPolling = false;
+          clearInterval(pollInterval);
+        }
+      } catch (err) {
+        // Silently fail - don't spam console with errors
+        console.error('Polling error:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Cleanup interval on unmount or when conditions change
+    return () => {
+      isPolling = false;
+      clearInterval(pollInterval);
+    };
+  }, [groupData?.group.status, groupData?.group.id, isCreator]); // Only depend on status and id, not entire groupData object
+
   const loadGroupData = async () => {
     try {
       // Get group ID from slug
