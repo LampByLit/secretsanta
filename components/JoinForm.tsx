@@ -342,7 +342,6 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
                 sizeWarning?.type === 'warning' ? 'border-yellow-500' :
                 'border-gray-300'
               }`}
-              placeholder="Keep address concise (e.g., '123 Main St, City, State ZIP')"
             />
           </div>
 
@@ -362,7 +361,6 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
                 sizeWarning?.type === 'warning' ? 'border-yellow-500' :
                 'border-gray-300'
               }`}
-              placeholder="Keep message brief"
             />
           </div>
 
