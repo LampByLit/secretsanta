@@ -286,12 +286,17 @@ export const dbHelpers = {
     const db = getDb();
     const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
     
+    console.log(`[checkBackfillStatus] Checking ${activeMembers.length} active members for group ${groupId}`);
+    activeMembers.forEach(m => console.log(`  - ${m.name} (${m.id}) - email: ${m.email}`));
+    
     if (activeMembers.length < 2) {
       // Need at least 2 members for bidirectional messages
+      console.log(`[checkBackfillStatus] Less than 2 members, backfill complete`);
       return { complete: true, missingMembers: [] };
     }
 
     const missingMembers = new Set<string>();
+    const missingMessages: Array<{ from: string; to: string }> = [];
     
     // Check all pairs for bidirectional messages
     for (let i = 0; i < activeMembers.length; i++) {
@@ -303,12 +308,16 @@ export const dbHelpers = {
         const msgAB = dbHelpers.getPreEncryptedMessage(groupId, memberA.id, memberB.id);
         if (!msgAB) {
           missingMembers.add(memberA.id);
+          missingMessages.push({ from: `${memberA.name} (${memberA.id})`, to: `${memberB.name} (${memberB.id})` });
+          console.log(`[checkBackfillStatus] ✗ Missing message: ${memberA.name} -> ${memberB.name}`);
         }
         
         // Check B -> A
         const msgBA = dbHelpers.getPreEncryptedMessage(groupId, memberB.id, memberA.id);
         if (!msgBA) {
           missingMembers.add(memberB.id);
+          missingMessages.push({ from: `${memberB.name} (${memberB.id})`, to: `${memberA.name} (${memberA.id})` });
+          console.log(`[checkBackfillStatus] ✗ Missing message: ${memberB.name} -> ${memberA.name}`);
         }
       }
     }
@@ -317,6 +326,11 @@ export const dbHelpers = {
       const member = activeMembers.find(m => m.id === id);
       return { id, name: member?.name || 'Unknown' };
     });
+
+    if (missingMessages.length > 0) {
+      console.log(`[checkBackfillStatus] Total missing messages: ${missingMessages.length}`);
+      console.log(`[checkBackfillStatus] Members needing to complete backfill: ${missingMembersList.map(m => m.name).join(', ')}`);
+    }
 
     return {
       complete: missingMembers.size === 0,

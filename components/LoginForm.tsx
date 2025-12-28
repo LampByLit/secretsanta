@@ -36,20 +36,35 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
 
       const data = await response.json();
       
+      console.log(`[LoginForm] Login response for ${email}:`, {
+        success: data.success,
+        isCreator: data.isCreator,
+        memberId: data.memberId,
+        groupStatus: data.groupStatus,
+        name: data.name
+      });
+      
       // Perform client-side backfill if needed (PRIVACY-AIRTIGHT: password never leaves browser)
       // Creator can also be a member, so check if they have a memberId
       const isMember = !!(data.memberId || (!data.isCreator && data.success));
+      console.log(`[LoginForm] isMember check: memberId=${data.memberId}, isCreator=${data.isCreator}, success=${data.success}, result=${isMember}`);
+      
       if (isMember && (data.groupStatus === 'open' || data.groupStatus === 'closed')) {
         try {
-          console.log(`[LoginForm] Performing backfill for ${data.isCreator ? 'creator' : 'member'}: ${email}`);
+          console.log(`[LoginForm] Performing backfill for ${data.isCreator ? 'creator' : 'member'}: ${email} (memberId: ${data.memberId})`);
           await performClientSideBackfill(groupId, email, password);
           console.log(`[LoginForm] ✓ Backfill completed for ${email}`);
         } catch (backfillError: any) {
-          console.error(`[LoginForm] Backfill error (non-blocking) for ${email}:`, backfillError.message);
+          console.error(`[LoginForm] ✗ Backfill error (non-blocking) for ${email}:`, backfillError.message);
+          console.error(`[LoginForm] Backfill stack:`, backfillError.stack);
           // Don't fail login if backfill fails - it's not critical
         }
       } else if (data.isCreator && !data.memberId) {
-        console.log(`[LoginForm] Creator ${email} is not a member yet - they need to join the group first`);
+        console.log(`[LoginForm] ⚠ Creator ${email} is not a member yet - they need to join the group first`);
+      } else if (!isMember) {
+        console.log(`[LoginForm] ⚠ User ${email} is not a member, skipping backfill`);
+      } else {
+        console.log(`[LoginForm] ⚠ Group status is '${data.groupStatus}', skipping backfill`);
       }
       
       // Store member session cookie
