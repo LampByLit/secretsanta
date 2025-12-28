@@ -45,21 +45,26 @@ export async function POST(
     }
 
     // Verify member
+    console.log(`[Backfill] Received ${preEncryptedMessages?.length || 0} messages from ${email} for group ${groupId}`);
     const member = dbHelpers.getMemberByEmail(groupId, email);
     if (!member) {
+      console.log(`[Backfill] ✗ Member not found: ${email}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
+    console.log(`[Backfill] ✓ Member found: ${member.name} (${member.id})`);
     const isValid = await bcrypt.compare(password, member.password_hash);
     if (!isValid) {
+      console.log(`[Backfill] ✗ Invalid password for ${email}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
+    console.log(`[Backfill] ✓ Password verified for ${member.name}`);
 
     // Check group status
     const group = dbHelpers.getGroupById(groupId);

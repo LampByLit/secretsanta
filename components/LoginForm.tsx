@@ -152,6 +152,8 @@ async function performClientSideBackfill(
   email: string,
   password: string
 ): Promise<void> {
+  console.log(`[performClientSideBackfill] Starting backfill for ${email} in group ${groupId}`);
+  
   // Fetch backfill data (encrypted data + new members' public keys)
   const backfillDataResponse = await fetch(
     `/api/groups/${groupId}/backfill-data?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
@@ -159,18 +161,24 @@ async function performClientSideBackfill(
 
   if (!backfillDataResponse.ok) {
     const errorData = await backfillDataResponse.json();
+    console.error(`[performClientSideBackfill] ✗ Failed to fetch backfill data:`, errorData.error);
     // If no backfill needed, that's fine
     if (errorData.error?.includes('not needed')) {
+      console.log(`[performClientSideBackfill] Backfill not needed for ${email}`);
       return;
     }
     throw new Error(errorData.error || 'Failed to fetch backfill data');
   }
 
   const backfillData = await backfillDataResponse.json();
+  console.log(`[performClientSideBackfill] Backfill data received: needsBackfill=${backfillData.needsBackfill}, newMembers=${backfillData.newMembers?.length || 0}`);
 
   if (!backfillData.needsBackfill || backfillData.newMembers.length === 0) {
+    console.log(`[performClientSideBackfill] No backfill needed for ${email}`);
     return; // No backfill needed
   }
+  
+  console.log(`[performClientSideBackfill] Need to create messages to ${backfillData.newMembers.length} members`);
 
   // Decrypt member's own data CLIENT-SIDE (password never leaves browser)
   // Email is now plaintext, so we pass it directly
@@ -192,6 +200,7 @@ async function performClientSideBackfill(
   // Create pre-encrypted messages for each new member
   const preEncryptedMessages: Array<{ recipientId: string; c1: string; c2: string }> = [];
 
+  console.log(`[performClientSideBackfill] Encrypting messages for ${backfillData.newMembers.length} recipients...`);
   for (const newMember of backfillData.newMembers) {
     try {
       const publicKey = BigInt(newMember.publicKey);
@@ -201,11 +210,14 @@ async function performClientSideBackfill(
         c1: encrypted.c1.toString(),
         c2: encrypted.c2.toString(),
       });
+      console.log(`[performClientSideBackfill] ✓ Encrypted message for recipient ${newMember.id}`);
     } catch (encryptError) {
-      console.error(`Failed to encrypt for member ${newMember.id}:`, encryptError);
+      console.error(`[performClientSideBackfill] ✗ Failed to encrypt for member ${newMember.id}:`, encryptError);
       // Continue with other members even if one fails
     }
   }
+  
+  console.log(`[performClientSideBackfill] Created ${preEncryptedMessages.length} encrypted messages, sending to server...`);
 
   // Clear sensitive data from memory (best effort - JavaScript GC will handle the rest)
   decryptedData.address = '';
@@ -225,7 +237,11 @@ async function performClientSideBackfill(
 
   if (!backfillResponse.ok) {
     const errorData = await backfillResponse.json();
+    console.error(`[performClientSideBackfill] ✗ Failed to store backfill messages:`, errorData.error);
     throw new Error(errorData.error || 'Failed to store backfill messages');
   }
+  
+  const backfillResult = await backfillResponse.json();
+  console.log(`[performClientSideBackfill] ✓ Backfill complete: created=${backfillResult.created}, skipped=${backfillResult.skipped}`);
 }
 

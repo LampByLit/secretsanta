@@ -46,21 +46,26 @@ export async function GET(
     }
 
     // Verify member
+    console.log(`[Backfill Data] Request from ${email} for group ${groupId}`);
     const member = dbHelpers.getMemberByEmail(groupId, email);
     if (!member) {
+      console.log(`[Backfill Data] ✗ Member not found: ${email}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
+    console.log(`[Backfill Data] ✓ Member found: ${member.name} (${member.id})`);
     const isValid = await bcrypt.compare(password, member.password_hash);
     if (!isValid) {
+      console.log(`[Backfill Data] ✗ Invalid password for ${email}`);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
+    console.log(`[Backfill Data] ✓ Password verified for ${member.name}`);
 
     // Check group status - only allow backfill for 'open' or 'closed' groups
     const group = dbHelpers.getGroupById(groupId);
@@ -120,6 +125,7 @@ export async function GET(
     }
     
     if (newMembers.length === 0) {
+      console.log(`[Backfill Data] No new members for ${member.name}, backfill not needed`);
       return NextResponse.json({
         needsBackfill: false,
         newMembers: [],
@@ -132,6 +138,7 @@ export async function GET(
       });
     }
 
+    console.log(`[Backfill Data] Returning ${newMembers.length} new members for ${member.name} to create messages to`);
     // Return encrypted data (NOT decrypted - client will decrypt) and new members' public keys
     return NextResponse.json({
       needsBackfill: true,
