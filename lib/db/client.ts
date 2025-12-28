@@ -72,6 +72,7 @@ function initializeSchema(database: Database.Database) {
       group_id TEXT NOT NULL,
       name TEXT NOT NULL,
       email TEXT NOT NULL,
+      email_hash TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       message TEXT NOT NULL,
       address TEXT NOT NULL,
@@ -81,10 +82,29 @@ function initializeSchema(database: Database.Database) {
       joined_at INTEGER NOT NULL,
       password_reset_token TEXT,
       password_reset_expires INTEGER,
-      UNIQUE(group_id, email),
+      UNIQUE(group_id, email_hash),
       FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
     )
   `);
+
+  // Add email_hash column if it doesn't exist (migration for existing databases)
+  try {
+    database.exec(`ALTER TABLE members ADD COLUMN email_hash TEXT`);
+    // Create index for email_hash lookups
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_members_email_hash ON members(group_id, email_hash)`);
+  } catch (e: any) {
+    // Column already exists, ignore error
+    if (!e.message.includes('duplicate column')) {
+      throw e;
+    }
+  }
+
+  // Ensure index exists for email_hash lookups
+  try {
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_members_email_hash ON members(group_id, email_hash)`);
+  } catch (e: any) {
+    // Index might already exist, ignore
+  }
 
   // Assignments table
   database.exec(`
@@ -114,7 +134,24 @@ function initializeSchema(database: Database.Database) {
     )
   `);
 
-  // Encrypted messages table
+  // Pre-encrypted messages table (encrypted during join, used during cycle initiation)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pre_encrypted_messages (
+      id TEXT PRIMARY KEY,
+      group_id TEXT NOT NULL,
+      sender_id TEXT NOT NULL,
+      recipient_id TEXT NOT NULL,
+      c1 TEXT NOT NULL,
+      c2 TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      UNIQUE(group_id, sender_id, recipient_id),
+      FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+      FOREIGN KEY (sender_id) REFERENCES members(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipient_id) REFERENCES members(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Encrypted messages table (final assignments after cycle initiation)
   database.exec(`
     CREATE TABLE IF NOT EXISTS encrypted_messages (
       id TEXT PRIMARY KEY,
@@ -146,6 +183,8 @@ function initializeSchema(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_assignments_group ON assignments(group_id);
     CREATE INDEX IF NOT EXISTS idx_assignments_santa ON assignments(santa_id);
     CREATE INDEX IF NOT EXISTS idx_shipments_group ON shipment_confirmations(group_id);
+    CREATE INDEX IF NOT EXISTS idx_pre_encrypted_messages_group ON pre_encrypted_messages(group_id);
+    CREATE INDEX IF NOT EXISTS idx_pre_encrypted_messages_recipient ON pre_encrypted_messages(group_id, recipient_id);
     CREATE INDEX IF NOT EXISTS idx_encrypted_messages_group ON encrypted_messages(group_id);
   `);
 }
@@ -172,10 +211,18 @@ export const dbHelpers = {
     return stmt.all(groupId) as Member[];
   },
 
-  getMemberByEmail: (groupId: string, email: string): Member | undefined => {
+  getMemberByEmailHash: (groupId: string, emailHash: string): Member | undefined => {
     const db = getDb();
-    const stmt = db.prepare('SELECT * FROM members WHERE group_id = ? AND email = ?');
-    return stmt.get(groupId, email) as Member | undefined;
+    const stmt = db.prepare('SELECT * FROM members WHERE group_id = ? AND email_hash = ?');
+    return stmt.get(groupId, emailHash) as Member | undefined;
+  },
+
+  getMemberByEmail: (groupId: string, email: string): Member | undefined => {
+    // Hash email for lookup (normalize to lowercase and trim)
+    const crypto = require('crypto');
+    const normalizedEmail = email.toLowerCase().trim();
+    const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+    return dbHelpers.getMemberByEmailHash(groupId, emailHash);
   },
 
   getAssignment: (groupId: string, santaId: string): Assignment | undefined => {
@@ -215,6 +262,12 @@ export const dbHelpers = {
     const stmt = db.prepare('SELECT decrypted_at FROM assignments WHERE group_id = ? AND santa_id = ?');
     const result = stmt.get(groupId, santaId) as { decrypted_at: number | null } | undefined;
     return result ? result.decrypted_at !== null : false;
+  },
+
+  getPreEncryptedMessage: (groupId: string, senderId: string, recipientId: string): { c1: string; c2: string } | undefined => {
+    const db = getDb();
+    const stmt = db.prepare('SELECT c1, c2 FROM pre_encrypted_messages WHERE group_id = ? AND sender_id = ? AND recipient_id = ?');
+    return stmt.get(groupId, senderId, recipientId) as { c1: string; c2: string } | undefined;
   },
 };
 

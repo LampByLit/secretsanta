@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { encryptPrivateKey } from '@/lib/crypto/aes';
-import { generateKeyPair } from '@/lib/crypto/elgamal';
+import { encryptPrivateKey, encryptMemberData } from '@/lib/crypto/aes';
+import { generateKeyPair, encrypt, encodeMessage } from '@/lib/crypto/elgamal';
 
 /**
  * Props for the JoinForm component
@@ -49,14 +49,29 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
   const [error, setError] = useState('');
 
   /**
+   * Compute SHA-256 hash of email for database lookups
+   */
+  const hashEmail = async (email: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(email.toLowerCase().trim());
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  /**
    * Handle form submission for joining the Secret Santa group
    *
    * Performs the following steps:
    * 1. Generates ElGamal key pair client-side for cryptographic operations
    * 2. Encrypts the private key with the user's password for secure storage
-   * 3. Submits member information to the server
-   * 4. Sets session cookie for authentication
-   * 5. Calls success callback on completion
+   * 3. Encrypts all member data (name, email, address, message) with password (for privacy)
+   * 4. Fetches existing members' public keys
+   * 5. Pre-encrypts member data with each existing member's public key (for assignments)
+   * 6. Computes email hash for database lookups
+   * 7. Submits encrypted member information and pre-encrypted messages to the server
+   * 8. Sets session cookie for authentication
+   * 9. Calls success callback on completion
    *
    * @param e - Form submission event
    */
@@ -72,14 +87,59 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
       // Encrypt private key with user's password for secure server storage
       const encryptedPrivateKey = await encryptPrivateKey(keyPair.privateKey.toString(), formData.password);
 
-      // Submit join request with public key and encrypted private key
+      // Encrypt all member data with password (client-side encryption for privacy)
+      const encryptedData = await encryptMemberData(
+        formData.name,
+        formData.address,
+        formData.message,
+        formData.email,
+        formData.password
+      );
+
+      // Compute email hash for database lookups (normalize email first)
+      const emailHash = await hashEmail(formData.email);
+
+      // Fetch existing members' public keys to pre-encrypt messages
+      const publicKeysResponse = await fetch(`/api/groups/${groupId}/public-keys`);
+      if (!publicKeysResponse.ok) {
+        throw new Error('Failed to fetch existing members\' public keys');
+      }
+      const publicKeysData = await publicKeysResponse.json();
+      const existingPublicKeys = publicKeysData.publicKeys || [];
+
+      // Pre-encrypt this member's data with each existing member's public key
+      // This allows cycle initiation to work without decrypting member data server-side
+      const encodedMessage = encodeMessage(formData.name, formData.address, formData.message);
+      const preEncryptedMessages: Array<{ recipientId: string; c1: string; c2: string }> = [];
+
+      for (const { memberId, publicKey } of existingPublicKeys) {
+        try {
+          const encrypted = await encrypt(BigInt(publicKey), encodedMessage);
+          preEncryptedMessages.push({
+            recipientId: memberId,
+            c1: encrypted.c1.toString(),
+            c2: encrypted.c2.toString(),
+          });
+        } catch (encryptError) {
+          console.error(`Failed to encrypt for member ${memberId}:`, encryptError);
+          // Continue with other members even if one fails
+        }
+      }
+
+      // Submit join request with encrypted data, public key, encrypted private key, and pre-encrypted messages
       const joinResponse = await fetch(`/api/groups/${groupId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          nameEncrypted: encryptedData.nameEncrypted,
+          emailEncrypted: encryptedData.emailEncrypted,
+          addressEncrypted: encryptedData.addressEncrypted,
+          messageEncrypted: encryptedData.messageEncrypted,
+          emailHash,
+          password: formData.password, // Still needed for password hash on server
           publicKey: keyPair.publicKey.toString(),
           encryptedPrivateKey,
+          preEncryptedMessages, // Pre-encrypted messages for existing members
         }),
       });
 
@@ -89,8 +149,8 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
         throw new Error(joinData.error || 'Failed to join Secret Santa group');
       }
 
-      // Store authentication cookie (expires in 1 year)
-      document.cookie = `santa_member_${groupId}=${formData.email}; path=/; max-age=31536000`;
+      // Store authentication cookie with email hash (expires in 1 year)
+      document.cookie = `santa_member_${groupId}=${emailHash}; path=/; max-age=31536000`;
 
       onSuccess();
     } catch (err: any) {
@@ -143,6 +203,9 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            <p className="mt-1 text-xs text-red-600 font-medium">
+              ⚠️ Important: Your password cannot be recovered or reset. Please save it securely.
+            </p>
           </div>
 
           <div>

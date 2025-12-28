@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, dbHelpers } from '@/lib/db/client';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
-import { generateKeyPair, encrypt, decrypt, encodeMessage, P, G } from '@/lib/crypto/elgamal';
+import { generateKeyPair, encrypt, decrypt, P, G } from '@/lib/crypto/elgamal';
 
 export async function POST(
   request: NextRequest,
@@ -154,8 +154,9 @@ export async function POST(
     }
     console.log(`[Initiate Cycle] Stored ${assignments.length} assignments successfully`);
 
-    // Encrypt each santee's message with their santa's public key
-    console.log(`[Initiate Cycle] Encrypting messages for ${assignments.length} assignments...`);
+    // Use pre-encrypted messages instead of encrypting on-the-fly
+    // Pre-encrypted messages were created when members joined, encrypting their data with all other members' public keys
+    console.log(`[Initiate Cycle] Using pre-encrypted messages for ${assignments.length} assignments...`);
     const encryptedMessageStmt = db.prepare(`
       INSERT INTO encrypted_messages (id, group_id, sender_id, santa_id, c1, c2, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -170,30 +171,32 @@ export async function POST(
       
       if (santa && santee) {
         try {
-          // Encode santee's message (name, address, message) into bigint
-          const encodedMessage = encodeMessage(santee.name, santee.address, santee.message);
+          // Look up pre-encrypted message from santee to santa
+          const preEncrypted = dbHelpers.getPreEncryptedMessage(groupId, santee.id, santa.id);
           
-          // Encrypt with santa's public key
-          const santaPublicKey = BigInt(santa.public_key);
-          const encrypted = await encrypt(santaPublicKey, encodedMessage);
+          if (!preEncrypted) {
+            // This shouldn't happen if all members joined before cycle initiation
+            // But handle gracefully - could happen if someone joined after cycle started (should be prevented)
+            throw new Error(`Pre-encrypted message not found from santee ${santee.id} to santa ${santa.id}`);
+          }
           
-          // Store encrypted message
+          // Use the pre-encrypted message (already encrypted with santa's public key)
           const encryptedMessageId = randomBytes(16).toString('hex');
           encryptedMessageStmt.run(
             encryptedMessageId,
             groupId,
             santee.id, // sender_id (the santee sending to their santa)
             santa.id,  // santa_id (who can decrypt it)
-            encrypted.c1.toString(),
-            encrypted.c2.toString(),
+            preEncrypted.c1,
+            preEncrypted.c2,
             now
           );
           
           encryptionSuccessCount++;
-          console.log(`[Initiate Cycle] ✓ Encrypted message for ${santa.name} (from ${santee.name})`);
+          console.log(`[Initiate Cycle] ✓ Used pre-encrypted message for santa ${santa.id} (from santee ${santee.id})`);
         } catch (encryptionError: any) {
           encryptionFailureCount++;
-          console.error(`[Initiate Cycle] ✗ Failed to encrypt message for ${santa.name}:`, encryptionError.message || encryptionError);
+          console.error(`[Initiate Cycle] ✗ Failed to use pre-encrypted message for santa ${santa.id}:`, encryptionError.message || encryptionError);
           // Continue with next message even if this one fails
         }
       } else {
@@ -202,7 +205,7 @@ export async function POST(
       }
     }
     
-    console.log(`[Initiate Cycle] Message encryption complete: ${encryptionSuccessCount} succeeded, ${encryptionFailureCount} failed`);
+    console.log(`[Initiate Cycle] Message assignment complete: ${encryptionSuccessCount} succeeded, ${encryptionFailureCount} failed`);
 
     // Update group status to messages_ready
     console.log(`[Initiate Cycle] Updating group status to 'messages_ready'...`);

@@ -1,10 +1,13 @@
 /**
- * AES encryption/decryption for private keys using password
+ * AES encryption/decryption for private keys and member data using password
  * Client-side encryption/decryption
  */
 
-export async function encryptPrivateKey(privateKey: string, password: string): Promise<string> {
-  // Derive key from password using PBKDF2
+/**
+ * Generic AES-GCM encryption function for any string data
+ * Uses PBKDF2 key derivation with 100,000 iterations
+ */
+async function encryptData(data: string, password: string): Promise<string> {
   const encoder = new TextEncoder();
   const passwordData = encoder.encode(password);
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -31,12 +34,12 @@ export async function encryptPrivateKey(privateKey: string, password: string): P
   );
   
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = encoder.encode(privateKey);
+  const dataBytes = encoder.encode(data);
   
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: iv },
     key,
-    data
+    dataBytes
   );
   
   // Combine salt + iv + encrypted data as base64
@@ -48,7 +51,10 @@ export async function encryptPrivateKey(privateKey: string, password: string): P
   return btoa(String.fromCharCode(...combined));
 }
 
-export async function decryptPrivateKey(encrypted: string, password: string): Promise<string> {
+/**
+ * Generic AES-GCM decryption function for any encrypted string data
+ */
+async function decryptData(encrypted: string, password: string): Promise<string> {
   // Decode base64
   const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
   
@@ -88,5 +94,83 @@ export async function decryptPrivateKey(encrypted: string, password: string): Pr
   );
   
   return new TextDecoder().decode(decrypted);
+}
+
+export async function encryptPrivateKey(privateKey: string, password: string): Promise<string> {
+  return encryptData(privateKey, password);
+}
+
+export async function decryptPrivateKey(encrypted: string, password: string): Promise<string> {
+  return decryptData(encrypted, password);
+}
+
+/**
+ * Encrypt member data fields (name, address, message, email) for secure storage
+ * Each field is encrypted independently with the user's password
+ */
+export async function encryptMemberData(
+  name: string,
+  address: string,
+  message: string,
+  email: string,
+  password: string
+): Promise<{
+  nameEncrypted: string;
+  addressEncrypted: string;
+  messageEncrypted: string;
+  emailEncrypted: string;
+}> {
+  const [nameEncrypted, addressEncrypted, messageEncrypted, emailEncrypted] = await Promise.all([
+    encryptData(name, password),
+    encryptData(address, password),
+    encryptData(message, password),
+    encryptData(email, password),
+  ]);
+
+  return {
+    nameEncrypted,
+    addressEncrypted,
+    messageEncrypted,
+    emailEncrypted,
+  };
+}
+
+/**
+ * Decrypt member data fields
+ */
+export async function decryptMemberData(
+  nameEncrypted: string,
+  addressEncrypted: string,
+  messageEncrypted: string,
+  emailEncrypted: string,
+  password: string
+): Promise<{
+  name: string;
+  address: string;
+  message: string;
+  email: string;
+}> {
+  const [name, address, message, email] = await Promise.all([
+    decryptData(nameEncrypted, password),
+    decryptData(addressEncrypted, password),
+    decryptData(messageEncrypted, password),
+    decryptData(emailEncrypted, password),
+  ]);
+
+  return { name, address, message, email };
+}
+
+/**
+ * Encrypt a single field (for selective decryption)
+ */
+export async function encryptField(data: string, password: string): Promise<string> {
+  return encryptData(data, password);
+}
+
+/**
+ * Decrypt a single field (for selective decryption)
+ */
+export async function decryptField(encrypted: string, password: string): Promise<string> {
+  return decryptData(encrypted, password);
 }
 

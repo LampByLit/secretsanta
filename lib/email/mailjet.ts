@@ -25,7 +25,11 @@ export async function sendAssignmentEmail(
     const sanitizedSanteeMessage = sanitizeEmailText(santeeMessage);
     const sanitizedGroupUrl = sanitizeEmailText(groupUrl);
     
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://secretestsanta.up.railway.app';
+    // Ensure we use the correct Railway URL (not lampbylit.com)
+    const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const baseUrl = (envBaseUrl && !envBaseUrl.includes('lampbylit.com')) 
+      ? envBaseUrl 
+      : 'https://secretestsanta.up.railway.app';
     const groupLink = `${baseUrl}/group/${sanitizedGroupUrl}`;
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
@@ -82,8 +86,11 @@ export async function sendPasswordResetEmail(
     const sanitizedToEmail = sanitizeEmailAddress(toEmail);
     const sanitizedGroupUrl = sanitizeEmailText(groupUrl);
     
-    // Token should already be safe (hex string), but sanitize groupUrl
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Ensure we use the correct Railway URL (not lampbylit.com)
+    const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const baseUrl = (envBaseUrl && !envBaseUrl.includes('lampbylit.com')) 
+      ? envBaseUrl 
+      : 'https://secretestsanta.up.railway.app';
     const resetUrl = `${baseUrl}/group/${sanitizedGroupUrl}/reset?token=${resetToken}`;
     
     const result = await mailjet.post('send', { version: 'v3.1' }).request({

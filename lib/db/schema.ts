@@ -12,11 +12,12 @@ export interface Group {
 export interface Member {
   id: string;
   group_id: string;
-  name: string;
-  email: string;
+  name: string; // AES encrypted (client-side with password)
+  email: string; // AES encrypted (client-side with password)
+  email_hash: string; // SHA-256 hash of email for lookups
   password_hash: string;
-  message: string;
-  address: string;
+  message: string; // AES encrypted (client-side with password)
+  address: string; // AES encrypted (client-side with password)
   public_key: string; // ElGamal public key (bigint as string)
   private_key_encrypted: string; // AES encrypted private key
   excluded: boolean;
