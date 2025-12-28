@@ -33,6 +33,9 @@ export default function Home() {
         >
           Create a New Secret Santa Group
         </Link>
+        <div className="text-center text-green-600 text-sm">
+          Once you have created your <span className="text-red-600 font-bold">GROUP</span>, you can <span className="text-red-600 font-bold">SHARE</span> the <span className="text-red-600 font-bold">URL</span> with your <span className="text-red-600 font-bold">FRIENDS</span> and <span className="text-red-600 font-bold">FAMILY</span>.
+        </div>
       </div>
     </main>
   );
