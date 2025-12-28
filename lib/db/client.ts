@@ -326,16 +326,35 @@ export const dbHelpers = {
 
   checkAndUpdateGroupStatus: (groupId: string): void => {
     const group = dbHelpers.getGroupById(groupId);
-    if (!group) return;
+    if (!group) {
+      console.log(`[Status Check] Group ${groupId} not found`);
+      return;
+    }
     
     // Only transition from 'closed' to 'ready'
-    if (group.status !== 'closed') return;
+    if (group.status !== 'closed') {
+      console.log(`[Status Check] Group ${groupId} status is '${group.status}', skipping (only transition from 'closed')`);
+      return;
+    }
     
     const backfillStatus = dbHelpers.checkBackfillStatus(groupId);
+    const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
+    const completedCount = activeMembers.length - backfillStatus.missingMembers.length;
+    
+    console.log(`[Status Check] Group ${groupId}: Backfill status - ${completedCount}/${activeMembers.length} members complete`);
+    
+    if (backfillStatus.missingMembers.length > 0) {
+      console.log(`[Status Check] Group ${groupId}: Missing backfill from ${backfillStatus.missingMembers.length} member(s):`, 
+        backfillStatus.missingMembers.map(m => m.name).join(', '));
+    }
+    
     if (backfillStatus.complete) {
       const db = getDb();
       const stmt = db.prepare('UPDATE groups SET status = ?, updated_at = ? WHERE id = ?');
       stmt.run('ready', Date.now(), groupId);
+      console.log(`[Status Check] ✓ Group ${groupId} status transitioned from 'closed' to 'ready'! All ${activeMembers.length} members have completed backfill.`);
+    } else {
+      console.log(`[Status Check] Group ${groupId} not ready yet: ${completedCount}/${activeMembers.length} members complete`);
     }
   },
 };

@@ -128,6 +128,7 @@ export async function POST(
           now
         );
         created++;
+        console.log(`[Backfill] ✓ Stored message from ${member.name} (${member.id}) to recipient ${msg.recipientId}`);
       } catch (error: any) {
         console.error(`[Backfill] Failed to store message from ${member.id} to ${msg.recipientId}:`, error.message || error);
         // Continue with next message even if this one fails
@@ -136,7 +137,14 @@ export async function POST(
 
     // Check if group should transition from 'closed' to 'ready'
     if (group.status === 'closed') {
+      console.log(`[Backfill] Checking if group ${groupId} should transition to 'ready' after storing ${created} new message(s)...`);
+      const statusBefore = group.status;
       dbHelpers.checkAndUpdateGroupStatus(groupId);
+      // Re-fetch to check if status changed
+      const updatedGroup = dbHelpers.getGroupById(groupId);
+      if (updatedGroup && updatedGroup.status !== statusBefore) {
+        console.log(`[Backfill] ✓ Group ${groupId} status changed from '${statusBefore}' to '${updatedGroup.status}'`);
+      }
     }
 
     return NextResponse.json({

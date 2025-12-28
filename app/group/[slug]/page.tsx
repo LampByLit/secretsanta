@@ -91,6 +91,8 @@ export default function GroupPage() {
     const groupId = groupData.group.id;
     pollingRef.current.isActive = true;
     
+    console.log(`[Frontend Polling] Starting status polling for group ${groupId} (checking every 3 seconds)`);
+    
     // Poll every 3 seconds to check if status changed to 'ready'
     pollingRef.current.intervalId = setInterval(async () => {
       if (!pollingRef.current.isActive) return; // Stop if we're no longer polling
@@ -114,6 +116,7 @@ export default function GroupPage() {
         
         // If status changed to 'ready', update state and stop polling
         if (data.group && data.group.status === 'ready') {
+          console.log(`[Frontend Polling] ✓ Group ${groupId} status is now 'ready'! Stopping polling and enabling initialize button.`);
           setGroupData(data);
           pollingRef.current.isActive = false;
           if (pollingRef.current.intervalId) {
@@ -121,6 +124,7 @@ export default function GroupPage() {
             pollingRef.current.intervalId = null;
           }
         } else if (data.group && data.group.status === 'closed') {
+          // Status still closed, continue polling (silently)
           // Only update if something meaningful changed (member count, etc.)
           // Use functional update to avoid unnecessary re-renders
           setGroupData(prev => {

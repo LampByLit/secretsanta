@@ -91,10 +91,15 @@ export async function POST(
     // Note: This checks after login, but the actual status transition happens after backfill completes
     // This is just a safety check in case backfill was already done
     if (group.status === 'closed') {
+      console.log(`[Verify Member] Checking status for group ${groupId} after member ${email} login...`);
+      const statusBefore = group.status;
       dbHelpers.checkAndUpdateGroupStatus(groupId);
       // Re-fetch group to get updated status
       const updatedGroup = dbHelpers.getGroupById(groupId);
       if (updatedGroup) {
+        if (updatedGroup.status !== statusBefore) {
+          console.log(`[Verify Member] ✓ Group ${groupId} status changed from '${statusBefore}' to '${updatedGroup.status}'`);
+        }
         group.status = updatedGroup.status;
       }
     }

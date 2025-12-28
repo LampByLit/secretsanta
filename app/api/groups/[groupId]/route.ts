@@ -60,10 +60,14 @@ export async function GET(
 
     // Check and update group status from 'closed' to 'ready' if all members have completed backfill
     if (group.status === 'closed') {
+      const statusBefore = group.status;
       dbHelpers.checkAndUpdateGroupStatus(groupId);
       // Re-fetch group to get updated status
       const updatedGroup = dbHelpers.getGroupById(groupId);
       if (updatedGroup) {
+        if (updatedGroup.status !== statusBefore) {
+          console.log(`[GET Group] Group ${groupId} status changed from '${statusBefore}' to '${updatedGroup.status}' during status check`);
+        }
         group.status = updatedGroup.status;
       }
     }
