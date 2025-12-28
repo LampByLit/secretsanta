@@ -147,7 +147,7 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
  * Perform client-side backfill: decrypt member's own data and create reverse pre-encrypted messages
  * PRIVACY-AIRTIGHT: Password and plaintext data NEVER leave the browser
  */
-async function performClientSideBackfill(
+export async function performClientSideBackfill(
   groupId: string,
   email: string,
   password: string

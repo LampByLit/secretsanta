@@ -874,8 +874,107 @@ export default function GroupPage() {
             }}
           />
         )}
+
+        {/* Auto-backfill prompt for creator when backfill is missing */}
+        {showAutoBackfillPrompt && creatorEmail && groupData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full">
+              <h3 className="text-xl font-bold mb-4">Complete Backfill Required</h3>
+              <p className="mb-4">You need to complete backfill to finish setup. Please enter your password:</p>
+              
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={creatorEmail}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={autoBackfillPassword}
+                    onChange={(e) => setAutoBackfillPassword(e.target.value)}
+                    disabled={autoBackfilling}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your password"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !autoBackfilling && autoBackfillPassword) {
+                        handleAutoBackfill();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={handleAutoBackfill}
+                  disabled={autoBackfilling || !autoBackfillPassword}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {autoBackfilling ? 'Completing Backfill...' : 'Complete Backfill'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAutoBackfillPrompt(false);
+                    autoBackfillAttempted.current = true;
+                  }}
+                  disabled={autoBackfilling}
+                  className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-400 disabled:opacity-50"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
+
+  const handleAutoBackfill = async () => {
+    if (!groupData || !autoBackfillPassword || !creatorEmail) {
+      setError('Password is required');
+      return;
+    }
+    
+    setAutoBackfilling(true);
+    setError('');
+    
+    try {
+      console.log(`[Auto Backfill] Starting backfill for ${creatorEmail}`);
+      await performClientSideBackfill(groupData.group.id, creatorEmail, autoBackfillPassword);
+      console.log(`[Auto Backfill] ✓ Backfill completed`);
+      
+      // Clear password from memory
+      setAutoBackfillPassword('');
+      setShowAutoBackfillPrompt(false);
+      autoBackfillAttempted.current = true;
+      
+      // Reload group data to check if status changed
+      await loadGroupById(groupData.group.id);
+    } catch (err: any) {
+      console.error(`[Auto Backfill] ✗ Error:`, err);
+      setError(err.message || 'Failed to complete backfill. Please try again.');
+    } finally {
+      setAutoBackfilling(false);
+    }
+  };
 }
 
