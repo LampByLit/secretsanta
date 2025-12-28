@@ -87,6 +87,18 @@ export async function POST(
       );
     }
 
+    // Check and update group status from 'closed' to 'ready' if all members have completed backfill
+    // Note: This checks after login, but the actual status transition happens after backfill completes
+    // This is just a safety check in case backfill was already done
+    if (group.status === 'closed') {
+      dbHelpers.checkAndUpdateGroupStatus(groupId);
+      // Re-fetch group to get updated status
+      const updatedGroup = dbHelpers.getGroupById(groupId);
+      if (updatedGroup) {
+        group.status = updatedGroup.status;
+      }
+    }
+
     // Return success - member exists and credentials are valid
     // Backfill is now done CLIENT-SIDE for privacy (password never leaves browser)
     return NextResponse.json({ 

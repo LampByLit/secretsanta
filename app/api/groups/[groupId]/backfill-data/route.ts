@@ -78,6 +78,16 @@ export async function GET(
       );
     }
 
+    // Check and update group status from 'closed' to 'ready' if all members have completed backfill
+    if (group.status === 'closed') {
+      dbHelpers.checkAndUpdateGroupStatus(groupId);
+      // Re-fetch group to get updated status
+      const updatedGroup = dbHelpers.getGroupById(groupId);
+      if (updatedGroup) {
+        group.status = updatedGroup.status;
+      }
+    }
+
     // Get members who joined after this member
     const newMembers = dbHelpers.getMembersJoinedAfter(groupId, member.joined_at, member.id);
     

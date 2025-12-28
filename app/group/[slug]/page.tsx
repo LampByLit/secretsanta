@@ -357,34 +357,25 @@ export default function GroupPage() {
             </>
           )}
 
-          {groupData.group.status === 'closed' && (
-            <>
-              {isCreator && (
-                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-800 font-semibold mb-2">Group Closed</p>
-                  <p className="text-sm text-yellow-700">
-                    Waiting for members to log in to complete setup. Members will need to log in at least once more to make the algorithm ready.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {groupData.group.status === 'ready' && isCreator && (
+          {(groupData.group.status === 'closed' || groupData.group.status === 'ready') && isCreator && (
             <>
               <button
                 onClick={() => {
                   setInitiateEmail(creatorEmail || '');
                   setShowInitiateConfirm(true);
                 }}
-                disabled={!canInitiate}
+                disabled={groupData.group.status === 'closed' || !canInitiate}
                 className={`w-full py-3 rounded-lg font-semibold mb-4 transition-colors ${
-                  canInitiate
+                  groupData.group.status === 'ready' && canInitiate
                     ? 'bg-green-600 text-white hover:bg-green-700'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {canInitiate ? 'INITIATE SECRET SANTA CYCLE' : `Need ${4 - groupData.memberCount} more members`}
+                {groupData.group.status === 'closed'
+                  ? 'Waiting for members to log in to complete setup...'
+                  : canInitiate
+                    ? 'INITIATE SECRET SANTA CYCLE'
+                    : `Need ${4 - groupData.memberCount} more members`}
               </button>
 
                   {showInitiateConfirm && (
@@ -665,7 +656,8 @@ export default function GroupPage() {
                     </div>
                   )}
 
-          {(groupData.group.status === 'closed' || groupData.group.status === 'ready' || groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && (
+          {/* Only show assignment/login after cycle initiation */}
+          {(groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && (
             <>
               {!isMember ? (
                 <div className="mt-6">

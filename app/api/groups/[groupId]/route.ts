@@ -58,6 +58,16 @@ export async function GET(
       decryptionCount = dbHelpers.getDecryptionCount(groupId);
     }
 
+    // Check and update group status from 'closed' to 'ready' if all members have completed backfill
+    if (group.status === 'closed') {
+      dbHelpers.checkAndUpdateGroupStatus(groupId);
+      // Re-fetch group to get updated status
+      const updatedGroup = dbHelpers.getGroupById(groupId);
+      if (updatedGroup) {
+        group.status = updatedGroup.status;
+      }
+    }
+
     return NextResponse.json({
       group: {
         id: group.id,
