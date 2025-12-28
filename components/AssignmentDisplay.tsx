@@ -170,7 +170,7 @@ export default function AssignmentDisplay({
       }
 
       if (!decryptedAssignment) {
-        throw new Error('Could not decrypt any message. This should not happen if the protocol worked correctly.');
+        throw new Error('Could not decrypt your assignment. This may happen if some pre-encrypted messages are missing. Please contact the group creator or try creating a new group where all members join before initiating the cycle.');
       }
 
       // Step 5: Mark as decrypted and send email (first time only)

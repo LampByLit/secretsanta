@@ -130,3 +130,62 @@ If you didn't request this, please ignore this email.`,
   }
 }
 
+export async function sendGroupClosedEmail(
+  toEmail: string,
+  memberName: string,
+  groupUrl: string
+) {
+  try {
+    // Sanitize user-provided content
+    const sanitizedToEmail = sanitizeEmailAddress(toEmail);
+    const sanitizedMemberName = sanitizeEmailText(memberName);
+    const sanitizedGroupUrl = sanitizeEmailText(groupUrl);
+    
+    // Ensure we use the correct Railway URL (not lampbylit.com)
+    const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const baseUrl = (envBaseUrl && !envBaseUrl.includes('lampbylit.com')) 
+      ? envBaseUrl 
+      : 'https://secretestsanta.up.railway.app';
+    const groupLink = `${baseUrl}/group/${sanitizedGroupUrl}`;
+    
+    const result = await mailjet.post('send', { version: 'v3.1' }).request({
+      Messages: [
+        {
+          From: {
+            Email: process.env.MAILJET_SENDER_EMAIL!,
+            Name: 'Secret Santa',
+          },
+          To: [
+            {
+              Email: sanitizedToEmail,
+              Name: sanitizedMemberName,
+            },
+          ],
+          Subject: 'Secret Santa Group Closed - Action Required',
+          TextPart: `Hello ${sanitizedMemberName}!
+
+The Secret Santa group has been closed and is ready for the secure cycle initiation.
+
+In order to allow the creator of the group to initialize the secure Secret Santa cycle, you are required to log back on at least once more to make the algorithm ready.
+
+Please visit: ${groupLink}
+
+Thank you!`,
+          HTMLPart: `
+            <h2>Hello ${sanitizedMemberName}!</h2>
+            <p>The Secret Santa group has been closed and is ready for the secure cycle initiation.</p>
+            <p>In order to allow the creator of the group to initialize the secure Secret Santa cycle, you are required to log back on at least once more to make the algorithm ready.</p>
+            <p><a href="${groupLink}">Visit your group</a></p>
+            <p>Thank you!</p>
+          `,
+        },
+      ],
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error sending group closed email:', error);
+    throw error;
+  }
+}
+

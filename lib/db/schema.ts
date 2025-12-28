@@ -4,7 +4,7 @@ export interface Group {
   creator_email: string;
   creator_password_hash: string;
   unique_url: string;
-  status: 'pending' | 'cycle_initiated' | 'messages_ready' | 'complete';
+  status: 'open' | 'closed' | 'ready' | 'messages_ready' | 'complete';
   created_at: number;
   updated_at: number;
 }

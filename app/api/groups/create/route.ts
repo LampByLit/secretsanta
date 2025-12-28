@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(groupId, groupName, email, passwordHash, uniqueUrl, 'pending', now, now);
+    stmt.run(groupId, groupName, email, passwordHash, uniqueUrl, 'open', now, now);
 
     // Return success response with group details
     return NextResponse.json({

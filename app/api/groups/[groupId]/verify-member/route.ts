@@ -88,11 +88,13 @@ export async function POST(
     }
 
     // Return success - member exists and credentials are valid
+    // Backfill is now done CLIENT-SIDE for privacy (password never leaves browser)
     return NextResponse.json({ 
       success: true,
       isCreator: false,
       memberId: member.id,
-      name: member.name 
+      name: member.name,
+      groupStatus: group.status, // Include status so client knows if backfill is needed
     });
   } catch (error) {
     console.error('Error verifying member:', error);

@@ -59,7 +59,7 @@ function initializeSchema(database: Database.Database) {
       creator_email TEXT NOT NULL,
       creator_password_hash TEXT NOT NULL,
       unique_url TEXT UNIQUE NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
+      status TEXT NOT NULL DEFAULT 'open',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
@@ -268,6 +268,75 @@ export const dbHelpers = {
     const db = getDb();
     const stmt = db.prepare('SELECT c1, c2 FROM pre_encrypted_messages WHERE group_id = ? AND sender_id = ? AND recipient_id = ?');
     return stmt.get(groupId, senderId, recipientId) as { c1: string; c2: string } | undefined;
+  },
+
+  getMembersJoinedAfter: (groupId: string, joinedAt: number, excludeMemberId?: string): Member[] => {
+    const db = getDb();
+    let stmt;
+    if (excludeMemberId) {
+      stmt = db.prepare('SELECT * FROM members WHERE group_id = ? AND joined_at > ? AND excluded = 0 AND id != ? ORDER BY joined_at ASC');
+      return stmt.all(groupId, joinedAt, excludeMemberId) as Member[];
+    } else {
+      stmt = db.prepare('SELECT * FROM members WHERE group_id = ? AND joined_at > ? AND excluded = 0 ORDER BY joined_at ASC');
+      return stmt.all(groupId, joinedAt) as Member[];
+    }
+  },
+
+  checkBackfillStatus: (groupId: string): { complete: boolean; missingMembers: Array<{ id: string; name: string }> } => {
+    const db = getDb();
+    const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
+    
+    if (activeMembers.length < 2) {
+      // Need at least 2 members for bidirectional messages
+      return { complete: true, missingMembers: [] };
+    }
+
+    const missingMembers = new Set<string>();
+    
+    // Check all pairs for bidirectional messages
+    for (let i = 0; i < activeMembers.length; i++) {
+      for (let j = i + 1; j < activeMembers.length; j++) {
+        const memberA = activeMembers[i];
+        const memberB = activeMembers[j];
+        
+        // Check A -> B
+        const msgAB = dbHelpers.getPreEncryptedMessage(groupId, memberA.id, memberB.id);
+        if (!msgAB) {
+          missingMembers.add(memberA.id);
+        }
+        
+        // Check B -> A
+        const msgBA = dbHelpers.getPreEncryptedMessage(groupId, memberB.id, memberA.id);
+        if (!msgBA) {
+          missingMembers.add(memberB.id);
+        }
+      }
+    }
+
+    const missingMembersList = Array.from(missingMembers).map(id => {
+      const member = activeMembers.find(m => m.id === id);
+      return { id, name: member?.name || 'Unknown' };
+    });
+
+    return {
+      complete: missingMembers.size === 0,
+      missingMembers: missingMembersList,
+    };
+  },
+
+  checkAndUpdateGroupStatus: (groupId: string): void => {
+    const group = dbHelpers.getGroupById(groupId);
+    if (!group) return;
+    
+    // Only transition from 'closed' to 'ready'
+    if (group.status !== 'closed') return;
+    
+    const backfillStatus = dbHelpers.checkBackfillStatus(groupId);
+    if (backfillStatus.complete) {
+      const db = getDb();
+      const stmt = db.prepare('UPDATE groups SET status = ?, updated_at = ? WHERE id = ?');
+      stmt.run('ready', Date.now(), groupId);
+    }
   },
 };
 

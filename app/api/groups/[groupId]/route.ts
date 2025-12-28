@@ -47,7 +47,7 @@ export async function GET(
     
     // Get shipment count if cycle initiated
     let shipmentCount = 0;
-    if (group.status !== 'pending') {
+    if (group.status === 'messages_ready' || group.status === 'complete') {
       shipmentCount = dbHelpers.getShipmentCount(groupId);
     }
 

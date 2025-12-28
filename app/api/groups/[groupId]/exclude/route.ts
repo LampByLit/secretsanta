@@ -41,8 +41,8 @@ export async function POST(
       );
     }
 
-    // Check if cycle already initiated
-    if (group.status !== 'pending') {
+    // Check if cycle already initiated (can't modify members after cycle starts)
+    if (group.status === 'messages_ready' || group.status === 'complete') {
       return NextResponse.json(
         { error: 'Cannot modify members after cycle initiation' },
         { status: 400 }

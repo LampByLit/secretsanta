@@ -21,10 +21,10 @@ export async function GET(
       );
     }
 
-    // Ensure group is still pending (can't join after cycle starts)
-    if (group.status !== 'pending') {
+    // Ensure group is still open (can't join after cycle starts)
+    if (group.status !== 'open') {
       return NextResponse.json(
-        { error: 'Cannot get public keys: the gift exchange has already started' },
+        { error: 'Cannot get public keys: the group is no longer accepting new members' },
         { status: 400 }
       );
     }

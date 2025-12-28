@@ -111,6 +111,10 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
 
       // Pre-encrypt this member's data with each existing member's public key
       // This allows cycle initiation to work without decrypting member data server-side
+      // Note: This only creates messages FROM new member TO existing members.
+      // Messages FROM existing members TO new member cannot be created server-side
+      // because we can't decrypt existing members' data. Cycle initiation will fail
+      // if any bidirectional messages are missing.
       const encodedMessage = encodeMessage(formData.name, formData.address, formData.message);
       const preEncryptedMessages: Array<{ recipientId: string; c1: string; c2: string }> = [];
 

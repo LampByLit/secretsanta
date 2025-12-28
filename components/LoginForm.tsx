@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { decryptMemberData } from '@/lib/crypto/aes';
+import { encrypt, encodeMessage } from '@/lib/crypto/elgamal';
 
 interface LoginFormProps {
   groupId: string;
@@ -33,6 +35,16 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
       }
 
       const data = await response.json();
+      
+      // Perform client-side backfill if needed (PRIVACY-AIRTIGHT: password never leaves browser)
+      if (!data.isCreator && (data.groupStatus === 'open' || data.groupStatus === 'closed')) {
+        try {
+          await performClientSideBackfill(groupId, email, password);
+        } catch (backfillError: any) {
+          console.error('Backfill error (non-blocking):', backfillError.message);
+          // Don't fail login if backfill fails - it's not critical
+        }
+      }
       
       // Store member session cookie
       document.cookie = `santa_member_${groupId}=${email}; path=/; max-age=31536000`;
@@ -108,5 +120,90 @@ export default function LoginForm({ groupId, onClose, onSuccess }: LoginFormProp
       </div>
     </div>
   );
+}
+
+/**
+ * Perform client-side backfill: decrypt member's own data and create reverse pre-encrypted messages
+ * PRIVACY-AIRTIGHT: Password and plaintext data NEVER leave the browser
+ */
+async function performClientSideBackfill(
+  groupId: string,
+  email: string,
+  password: string
+): Promise<void> {
+  // Fetch backfill data (encrypted data + new members' public keys)
+  const backfillDataResponse = await fetch(
+    `/api/groups/${groupId}/backfill-data?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+  );
+
+  if (!backfillDataResponse.ok) {
+    const errorData = await backfillDataResponse.json();
+    // If no backfill needed, that's fine
+    if (errorData.error?.includes('not needed')) {
+      return;
+    }
+    throw new Error(errorData.error || 'Failed to fetch backfill data');
+  }
+
+  const backfillData = await backfillDataResponse.json();
+
+  if (!backfillData.needsBackfill || backfillData.newMembers.length === 0) {
+    return; // No backfill needed
+  }
+
+  // Decrypt member's own data CLIENT-SIDE (password never leaves browser)
+  const decryptedData = await decryptMemberData(
+    backfillData.memberData.name,
+    backfillData.memberData.addressEncrypted,
+    backfillData.memberData.messageEncrypted,
+    backfillData.memberData.emailEncrypted,
+    password
+  );
+
+  // Encode message for ElGamal encryption
+  const encodedMessage = encodeMessage(
+    decryptedData.name,
+    decryptedData.address,
+    decryptedData.message
+  );
+
+  // Create pre-encrypted messages for each new member
+  const preEncryptedMessages: Array<{ recipientId: string; c1: string; c2: string }> = [];
+
+  for (const newMember of backfillData.newMembers) {
+    try {
+      const publicKey = BigInt(newMember.publicKey);
+      const encrypted = await encrypt(publicKey, encodedMessage);
+      preEncryptedMessages.push({
+        recipientId: newMember.id,
+        c1: encrypted.c1.toString(),
+        c2: encrypted.c2.toString(),
+      });
+    } catch (encryptError) {
+      console.error(`Failed to encrypt for member ${newMember.id}:`, encryptError);
+      // Continue with other members even if one fails
+    }
+  }
+
+  // Clear sensitive data from memory (best effort - JavaScript GC will handle the rest)
+  decryptedData.address = '';
+  decryptedData.message = '';
+  decryptedData.email = '';
+
+  // Send pre-encrypted messages to server (server NEVER sees plaintext)
+  const backfillResponse = await fetch(`/api/groups/${groupId}/backfill`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      password, // Still needed for authentication, but plaintext data never sent
+      preEncryptedMessages,
+    }),
+  });
+
+  if (!backfillResponse.ok) {
+    const errorData = await backfillResponse.json();
+    throw new Error(errorData.error || 'Failed to store backfill messages');
+  }
 }
 

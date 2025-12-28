@@ -45,10 +45,50 @@ export async function POST(
     }
 
     // Check if already initiated
-    if (group.status !== 'pending') {
+    if (group.status === 'messages_ready' || group.status === 'complete') {
       console.log(`[Initiate Cycle] Group ${groupId} already initiated with status: ${group.status}`);
       return NextResponse.json(
         { error: 'Cycle already initiated' },
+        { status: 400 }
+      );
+    }
+
+    // Check if group is ready for cycle initiation
+    if (group.status !== 'ready') {
+      const backfillStatus = dbHelpers.checkBackfillStatus(groupId);
+      const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
+      const completedCount = activeMembers.length - backfillStatus.missingMembers.length;
+      
+      return NextResponse.json(
+        { 
+          error: `Cannot initiate cycle. Group status is '${group.status}'. ${completedCount}/${activeMembers.length} members have completed setup.`,
+          backfillStatus: {
+            complete: backfillStatus.complete,
+            completedCount,
+            totalCount: activeMembers.length,
+            missingMembers: backfillStatus.missingMembers.map(m => ({ id: m.id, name: m.name })),
+          }
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verify all bidirectional messages exist before proceeding
+    const backfillStatus = dbHelpers.checkBackfillStatus(groupId);
+    if (!backfillStatus.complete) {
+      const activeMembers = dbHelpers.getMembersByGroup(groupId, false);
+      const completedCount = activeMembers.length - backfillStatus.missingMembers.length;
+      console.error(`[Initiate Cycle] Backfill not complete: ${completedCount}/${activeMembers.length} members ready`);
+      return NextResponse.json(
+        { 
+          error: `Cannot initiate cycle: ${backfillStatus.missingMembers.length} member(s) need to log in to complete setup.`,
+          backfillStatus: {
+            complete: false,
+            completedCount,
+            totalCount: activeMembers.length,
+            missingMembers: backfillStatus.missingMembers.map(m => ({ id: m.id, name: m.name })),
+          }
+        },
         { status: 400 }
       );
     }
@@ -206,6 +246,20 @@ export async function POST(
     }
     
     console.log(`[Initiate Cycle] Message assignment complete: ${encryptionSuccessCount} succeeded, ${encryptionFailureCount} failed`);
+
+    // Fail if any messages are missing - this indicates missing bidirectional pre-encrypted messages
+    // which happens when members join sequentially (early joiners can't encrypt for later joiners)
+    if (encryptionFailureCount > 0) {
+      console.error(`[Initiate Cycle] ✗ Failed to initiate cycle: ${encryptionFailureCount} pre-encrypted messages missing`);
+      return NextResponse.json(
+        { 
+          error: `Cannot initiate cycle: ${encryptionFailureCount} pre-encrypted message(s) missing. This happens when members join sequentially. All members must join before initiating the cycle, or create a new group.`,
+          messagesEncrypted: encryptionSuccessCount,
+          messagesFailed: encryptionFailureCount
+        },
+        { status: 400 }
+      );
+    }
 
     // Update group status to messages_ready
     console.log(`[Initiate Cycle] Updating group status to 'messages_ready'...`);

@@ -42,6 +42,7 @@ export default function GroupPage() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInitiateConfirm, setShowInitiateConfirm] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showExcludeConfirm, setShowExcludeConfirm] = useState(false);
   const [excludeMemberId, setExcludeMemberId] = useState<string | null>(null);
   const [excludeMemberExcluded, setExcludeMemberExcluded] = useState(false);
@@ -52,6 +53,8 @@ export default function GroupPage() {
   // Form state for modals
   const [initiateEmail, setInitiateEmail] = useState('');
   const [initiatePassword, setInitiatePassword] = useState('');
+  const [closeEmail, setCloseEmail] = useState('');
+  const [closePassword, setClosePassword] = useState('');
   const [deleteEmail, setDeleteEmail] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
   const [excludeEmail, setExcludeEmail] = useState('');
@@ -251,7 +254,7 @@ export default function GroupPage() {
     );
   }
 
-  const canInitiate = groupData.memberCount >= 4 && groupData.group.status === 'pending';
+  const canInitiate = groupData.memberCount >= 4 && groupData.group.status === 'ready';
 
   return (
     <main className="min-h-screen p-8">
@@ -291,7 +294,7 @@ export default function GroupPage() {
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           {/* Status information at the top */}
-          {groupData.group.status !== 'pending' && (
+          {(groupData.group.status === 'closed' || groupData.group.status === 'ready' || groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && (
             <div className="mb-6 pb-6 border-b">
               <div className="flex flex-col gap-2">
                 {(groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && groupData.decryptionCount !== undefined && groupData.totalMembers !== undefined && (
@@ -313,7 +316,7 @@ export default function GroupPage() {
             </div>
           )}
 
-          {groupData.group.status === 'pending' && (
+          {groupData.group.status === 'open' && (
             <>
               {!isMember && (
                 <button
@@ -329,22 +332,48 @@ export default function GroupPage() {
               )}
               
               {isCreator && (
-                <>
+                <button
+                  onClick={() => {
+                    setCloseEmail(creatorEmail || '');
+                    setShowCloseConfirm(true);
+                  }}
+                  className="w-full py-3 rounded-lg font-semibold mb-4 bg-yellow-600 text-white hover:bg-yellow-700 transition-colors"
+                >
+                  CLOSE GROUP (Stop Accepting New Members)
+                </button>
+              )}
+            </>
+          )}
 
-                  <button
-                    onClick={() => {
-                      setInitiateEmail(creatorEmail || '');
-                      setShowInitiateConfirm(true);
-                    }}
-                    disabled={!canInitiate}
-                    className={`w-full py-3 rounded-lg font-semibold mb-4 transition-colors ${
-                      canInitiate
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {canInitiate ? 'INITIATE SECRET SANTA CYCLE' : `Need ${4 - groupData.memberCount} more members`}
-                  </button>
+          {groupData.group.status === 'closed' && (
+            <>
+              {isCreator && (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800 font-semibold mb-2">Group Closed</p>
+                  <p className="text-sm text-yellow-700">
+                    Waiting for members to log in to complete setup. Members will need to log in at least once more to make the algorithm ready.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {groupData.group.status === 'ready' && isCreator && (
+            <>
+              <button
+                onClick={() => {
+                  setInitiateEmail(creatorEmail || '');
+                  setShowInitiateConfirm(true);
+                }}
+                disabled={!canInitiate}
+                className={`w-full py-3 rounded-lg font-semibold mb-4 transition-colors ${
+                  canInitiate
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {canInitiate ? 'INITIATE SECRET SANTA CYCLE' : `Need ${4 - groupData.memberCount} more members`}
+              </button>
 
                   {showInitiateConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -393,6 +422,88 @@ export default function GroupPage() {
                               setShowInitiateConfirm(false);
                               setInitiateEmail('');
                               setInitiatePassword('');
+                            }}
+                            className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {showCloseConfirm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white p-6 rounded-lg max-w-md w-full">
+                        <h3 className="text-xl font-bold mb-4">Close Group</h3>
+                        <p className="mb-4">Closing the group will stop accepting new members. Members will need to log in to complete setup before you can initiate the cycle.</p>
+                        
+                        <div className="space-y-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Email
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={closeEmail}
+                              onChange={(e) => setCloseEmail(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                              placeholder="Enter your email"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Your Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              value={closePassword}
+                              onChange={(e) => setClosePassword(e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                              placeholder="Enter your password"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-4">
+                          <button
+                            onClick={async () => {
+                              if (!groupData) return;
+                              try {
+                                const response = await fetch(`/api/groups/${groupData.group.id}/close`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    creatorEmail: closeEmail,
+                                    creatorPassword: closePassword,
+                                  }),
+                                });
+                                const data = await response.json();
+                                if (response.ok) {
+                                  setError('');
+                                  setShowCloseConfirm(false);
+                                  setCloseEmail('');
+                                  setClosePassword('');
+                                  // Refresh group data
+                                  await loadGroupData();
+                                } else {
+                                  setError(data.error || 'Failed to close group');
+                                }
+                              } catch (err: any) {
+                                setError(err.message || 'Failed to close group');
+                              }
+                            }}
+                            className="flex-1 bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700"
+                          >
+                            Close Group
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowCloseConfirm(false);
+                              setCloseEmail('');
+                              setClosePassword('');
                             }}
                             className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400"
                           >
@@ -587,7 +698,7 @@ export default function GroupPage() {
               {groupData.members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between py-2 border-b">
                   <span className="text-gray-800">{member.name}</span>
-                  {isCreator && groupData.group.status === 'pending' && (
+                  {isCreator && (groupData.group.status === 'open' || groupData.group.status === 'closed') && (
                     <button
                       onClick={() => {
                         setExcludeEmail(creatorEmail || '');

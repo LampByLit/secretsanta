@@ -1,7 +1,28 @@
 /**
  * AES encryption/decryption for private keys and member data using password
- * Client-side encryption/decryption
+ * Works in both browser and Node.js environments
  */
+
+// Base64 encoding/decoding helpers that work in both browser and Node.js
+function base64Encode(data: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    // Node.js environment
+    return Buffer.from(data).toString('base64');
+  } else {
+    // Browser environment
+    return btoa(String.fromCharCode(...data));
+  }
+}
+
+function base64Decode(encoded: string): Uint8Array {
+  if (typeof Buffer !== 'undefined') {
+    // Node.js environment
+    return new Uint8Array(Buffer.from(encoded, 'base64'));
+  } else {
+    // Browser environment
+    return Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+  }
+}
 
 /**
  * Generic AES-GCM encryption function for any string data
@@ -48,7 +69,7 @@ async function encryptData(data: string, password: string): Promise<string> {
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(encrypted), salt.length + iv.length);
   
-  return btoa(String.fromCharCode(...combined));
+  return base64Encode(combined);
 }
 
 /**
@@ -56,7 +77,7 @@ async function encryptData(data: string, password: string): Promise<string> {
  */
 async function decryptData(encrypted: string, password: string): Promise<string> {
   // Decode base64
-  const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
+  const combined = base64Decode(encrypted);
   
   const salt = combined.slice(0, 16);
   const iv = combined.slice(16, 28);

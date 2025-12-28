@@ -10,7 +10,7 @@ import { encrypt, encodeMessage } from '@/lib/crypto/elgamal';
  * Join an existing Secret Santa group
  *
  * Allows a new member to join a Secret Santa group by providing their information
- * and cryptographic keys. The group must still be in 'pending' status (not yet started).
+ * and cryptographic keys. The group must still be in 'open' status (not yet closed).
  *
  * @param request - The HTTP request containing member join data
  * @param params - Route parameters containing the groupId
@@ -91,10 +91,10 @@ export async function POST(
       );
     }
 
-    // Ensure the gift exchange hasn't started yet
-    if (group.status !== 'pending') {
+    // Ensure the gift exchange hasn't started yet (only allow joining when status is 'open')
+    if (group.status !== 'open') {
       return NextResponse.json(
-        { error: 'Cannot join: the gift exchange has already started' },
+        { error: 'Cannot join: the group is no longer accepting new members' },
         { status: 400 }
       );
     }
