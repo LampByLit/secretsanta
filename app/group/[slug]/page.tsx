@@ -218,6 +218,14 @@ export default function GroupPage() {
       // A user is "fledged" if they're in the members table
       setIsMember(data.isMember || false);
       
+      // If creator is also a member and group is closed, trigger backfill automatically
+      if (creatorCookie && data.isMember && data.group.status === 'closed') {
+        const creatorEmail = creatorEmailFromCookie || '';
+        console.log(`[Auto Backfill] Creator ${creatorEmail} is also a member, checking if backfill needed...`);
+        // Trigger backfill check - we'll need the password, so prompt if needed
+        // For now, just log - user can click login button if needed
+      }
+      
       // Assignment loading is handled by the AssignmentDisplay component
       
       setLoading(false);
@@ -457,6 +465,18 @@ export default function GroupPage() {
 
           {(groupData.group.status === 'closed' || groupData.group.status === 'ready') && isCreator && (
             <>
+              {/* Show backfill button if creator is member and backfill is missing */}
+              {isMember && groupData.group.status === 'closed' && (
+                <button
+                  onClick={() => {
+                    setShowLoginForm(true);
+                  }}
+                  className="w-full py-3 rounded-lg font-semibold mb-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  COMPLETE BACKFILL (Log in to finish setup)
+                </button>
+              )}
+              
               <button
                 onClick={() => {
                   setInitiateEmail(creatorEmail || '');
