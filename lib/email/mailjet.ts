@@ -14,6 +14,10 @@ export async function sendAssignmentEmail(
   groupUrl: string
 ) {
   try {
+    console.log(`[MailJet] Sending assignment email to ${toEmail}...`);
+    console.log(`[MailJet] Sender: ${process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com'}`);
+    console.log(`[MailJet] Group URL: ${groupUrl}`);
+    
     const result = await mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
         {
@@ -51,9 +55,14 @@ View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
       ],
     });
 
+    console.log(`[MailJet] Email sent successfully. Response:`, JSON.stringify(result.body, null, 2));
     return result;
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch (error: any) {
+    console.error(`[MailJet] Error sending email to ${toEmail}:`, error.message || error);
+    console.error(`[MailJet] Error details:`, error);
+    if (error.response) {
+      console.error(`[MailJet] Error response:`, JSON.stringify(error.response.body, null, 2));
+    }
     throw error;
   }
 }
