@@ -88,8 +88,27 @@ export async function GET(
       }
     }
 
-    // Get members who joined after this member
-    const newMembers = dbHelpers.getMembersJoinedAfter(groupId, member.joined_at, member.id);
+    // When group is closed, ALL members need to create messages to ALL other members
+    // When group is open, only create messages to members who joined after
+    let newMembers: Array<{ id: string; publicKey: string }>;
+    
+    if (group.status === 'closed') {
+      // Get ALL other members (for bidirectional messages when group is closed)
+      const allMembers = dbHelpers.getMembersByGroup(groupId, false);
+      newMembers = allMembers
+        .filter(m => m.id !== member.id)
+        .map(m => ({
+          id: m.id,
+          publicKey: m.public_key,
+        }));
+    } else {
+      // Get only members who joined after this member (normal backfill)
+      const membersAfter = dbHelpers.getMembersJoinedAfter(groupId, member.joined_at, member.id);
+      newMembers = membersAfter.map(m => ({
+        id: m.id,
+        publicKey: m.public_key,
+      }));
+    }
     
     if (newMembers.length === 0) {
       return NextResponse.json({
