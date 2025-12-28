@@ -1,0 +1,469 @@
+Imagine that you have friends and you want to arrange a secret Santa event uh among
+those friends. Secret Santa is a giftgiving tradition that improves upon the classic approach whereby Santa gives
+a present to every person in the world. In secret Santa, each person is a Santa
+for one other person. And so you only need to arrange one gift and you only need to receive and pretend to like one
+gift. So that's nice. But your friends unfortunately in this scenario live uh
+are all around the world and so the approach of putting names in a hat and
+just pulling out names to see who your recipient is won't work. They just don't have access to uh hat.
+But the good news is that your friends are they're math nerds that love doing
+really complicated math stuff by hand with a high chance of disaster.
+Yes, that's right. It's mathematically extra complicated secretist Santa 2025
+factorial hosted by me, your boy, and somehow occasional math YouTuber, Tom 7.
+So, a few years ago, Katie Steckles began a tradition in a small corner of
+the math YouTube community of arranging a secret Santa event. And what's special
+about this event is that we are trying to come up with the assignment of Santa
+to santi uh without anyone being in charge. Like it's really easy if you just say hey you figure out who gives to
+whom don't tell anybody. Uh but usually that person wants to participate. So last year Matt Parker created a an
+algorithm that was a hybrid of Katie and Hannah's algorithms and it did work. We successfully created a secret Santa
+assignment. everyone received their gifts. It was not without its problems. We discovered a few fairly serious
+problems with it. Um the most serious problem was that Matt at the last minute while he was editing the video decided
+to redo the protocol to simplify it and rendered it um totally broken, which I
+told him 5 minutes before he posted his video, not on purpose. On the drive back from the holiday, I
+was I couldn't stop thinking about this problem, like is it possible to defeat some of the issues with it? and I came
+up with something. Uh, and so here I am inflicting it upon the people that were
+willing to give it another go. Uh, we don't have video from you. Maybe that's intentional.
+Uh, yes, I am driving a vehicle. Okay. Awesome.
+Be safe. I enjoyed the efforts that people made to get on the call, even if they were on
+the go. I organized the call from my math hole, which you can see has gotten a little bit better. I put a conspicuous
+vacuum in the middle of the background because it's one of the few objects that you can add to a scene to make it cleaner.
+I'm glad I'm not running it this year. Okay, here we go. 3 2 1 zero.
+Well, with 13 math experts able to achieve perfect synchronization with their clap,
+what could go wrong? Well, I'll tell you what could go wrong, but first, let's be a little bit more precise about what
+we're talking about. Let's say we have k players in our secret Santa. The goal is to match each
+player with some different player to receive a gift from them. Each player gives exactly one gift and receives
+exactly one gift. This idea comes up a lot. So there are a lot of equivalent names for it uh depending on what branch
+of mathematics you're in. Permutation is good because that's both casually correct and mathematically correct.
+Although we are going to add some constraints here. One of those is that you can't give to yourself. I mean, you
+can, but you shouldn't. It's natural why you would want this property, but an additional reason is that such a
+permutation is known formally as a derangement. Uh, so that's fun. A valid derangement
+includes the possibility that there's actually sort of two different parties going on, right? So, here I have the red
+and yellow players exchanging gifts with one another, and the other three are exchanging with themselves. And and I
+don't know, I mean, I think that's a valid secret Santa, but it seems more elegant if everyone is participating in
+the same gift exchange, right? So these secret Santa systems that we've been considering are actually working with a
+special kind of derangement, which is a cyclic permutation. In other words, if I were to pass the ule log to my secret
+santi and they were to pass it to their santi and so forth, it would eventually come back to me after having passed
+through every person. In other words, and mathematicians I know are good at coming up with fancy ways of saying
+things, but you know, that's part of the fun. In other words, we're going to be looking to agree on a random ordering
+for those K participants. But there's a bit more to it than that because we want this ordering to be secret. We want you
+to only know who is the person you're going to give a gift to. Now, it's not actually possible to know only that one
+fact because you can derive information from the facts. You know, in particular for a normal number of K like let's say
+there's 5K. If I'm giving to someone, I'll know that. And therefore, because I have a cycle, I know that person can't
+be my Santa. Now, if you have three players, you can deduce the entire triangle. So, that sucks. And if you
+have two players, it was going to suck no matter what. But possibly good news is that if you have zero players, the
+null Noel, you can achieve perfect anonymity. And finally, we want an
+algorithm where none of the participants can mess it up on their own, at least
+without it being detected. And by mess it up, I mean either they get to pick who they give to or learn who's giving
+to them, uh, get multiple presents, that kind of thing. Now, I think this implies that there is no person in charge.
+There's no one person in charge because then they would be able to mess it up by unilaterally acting. Um, so we're going
+to get a distributed secret Santa algorithm this way. Now, like I mentioned, Matt tried to solve this problem last year. He did a pretty good
+job. So, let's talk about his algorithm real quick because it is the inspiration for my version. And part of the spirit
+of super complicated math YouTube secret Santa is passing along this algorithm
+and the criteria and then trying to improve upon the algorithm as we do.
+So, here's last year's method. Conceptually, what we're going to do is agree on an ordering of the participants, and each one is just going
+to give to the next participant. For each of the participants here, they're going to be chess pieces. There'll be a
+sender side and a receiver side, which are represented by these ticket stubs. And the goal is to come up with a random
+ordering of these that everyone gets to see, but no one knows anything about it
+other than who they're giving to. There's going to be a few rounds here. So, we just start with some arbitrary
+order for the participants and we're going to pass messages between them. To kick things off, the bishop generates
+random sender and receiver IDs for themselves. Say they come up with randomly 1 2 3 4 5 6. They send that
+list of one thing to the rook. The rook generates some numbers, adds them to the
+list, randomizes the list, and sends it to the knight. So phase one continues
+like this until the queen receives a randomized list of sender and receiver IDs. Now the queen who has a special
+role has a list of sender receiver IDs that are paired up. They correspond with one another. They know who they are on
+this list but they don't know who anyone else is unless they could maybe guess based on the choice of quote unquote
+random number like 007. So this is going to be our order. Right now each sender
+ID is paired with the same person's receiver ID. So everyone would would be giving to themselves. Now what the queen
+does is rotate the receiver ids so that we get the cycle. And if we rotate by
+one, as long as there's more than one participant, now no one will be giving to themselves anymore.
+Round two. All right. Now the queen sends this back to the first participant, which is the
+bishop. And the bishop has never seen any of these numbers before. So they know nothing other than their own uh
+sender and receiver ID, which are somewhere in this list. And this is the this is the clever part of this. So the
+bishop finds their own receiver ID and replaces it with their name. And because
+we want to make sure that no one ever sees one of these random numbers more than once, replaces their sender ID with
+a new sender ID. Then the bishop shuffles, sends this to the next player. Now
+again, the rook has not seen any of these numbers before except their own. They know the bishop is before them in
+this list, so it's not surprising to see their name there. And the rook does the same thing. Replace the receiver ID with
+their name and their sender ID with a new random nons. And then shuffle the
+list again. Each of the players just keeps doing this till it gets to the end. And at this point now, we have the
+final assignment. And in fact, the queen can inspect this and see that their sender ID, which is now 487, is paired
+with the knight. And so they're giving a present to the knight. Now, we can't just share this list as is with everyone because it would leak information. But
+we can pass it around one more time and have each player find themselves in the list, their sender ID, and then replace
+their sender ID with a new random number. This maintains the property that every time you see the list, it contains
+only numbers you've never seen before and will never see again other than your own. And this is the foundation of why
+this algorithm preserves secrecy. And that's it. I know that was super fast, but this is just for background
+intuition. There's a lot to like about this algorithm, but we did discover some serious problems last year. The core
+problem is that the algorithm asks you to keep these sender and receiver IDs paired up, but you don't have to. Peter
+Rowlet found a way to do surgery on the cycle as it passed through him and choose who he's buying for. So, it
+doesn't really succeed at its stated goals. Another problem is although it has numbers, I mean, are we doing any
+math with the numbers? This is supposed to be mathematically complicated secret Santa. So, I have a modification that I
+think banishes the hackers. Uh, but we're going to need some bigger numbers.
+Like, a lot bigger. My upgrade to Matt's algorithm actually does away with phase
+2 and phase three. I mean, there'll be a different phase 2 and phase three, but it won't involve passing the list
+around. Okay. I had three coffees to sort of pick up the energy here. Um, in
+fact, I know I have a scene coming up where I'm like, it's like literally the middle of the night and I can't sleep. So, I want at least the average energy
+to be pretty good. My version of this protocol is using a somewhat heavyweight tool, a mathematical tool, but is a
+little bit of a complicated one, which is public key cryptography. You may have already thought of that, and I'm going to go into some detail
+about how my favorite public key cryptography algorithm works, cuz I think it's totally understandable. um
+and it's not RSA but for now we can think about it abstractly. The quick version is that this is a way of sending
+secret messages using a pair of keys called the public and the private key.
+The public key can be used to encrypt messages and you just publish the public key, everyone can see it and then send
+messages that can only be decrypted by the private key which you keep secret. You actually use public key cryptography
+all of the time. Uh, for example, if you live in the United States and you use a US dollar, you'll see that it says, if
+you look at it closely, this note is legal tender for all debts, public and private. That's referring to the public
+key, which is printed right on here. These allow you to send a secret messages to George Washington. Then we
+just have these two operations. We can encrypt a message using someone's public key. And we get back some encrypted
+message Cipher text. And then we have the reverse. We can decrypt, but this uses the private key, the corresponding
+private key, and that turns the cipher text back into the message. Now, everything here is just a big number.
+We're going to use,024bit numbers, which are about 309 digits long. Usually, when you're doing
+cryptography, you don't need to think about that. Uh, everything is a bit more abstract, but we're going to really use
+these things as numbers in this protocol. Everyone has a public and private key, which they generate offline
+for the purpose of this algorithm. And one of the core ideas of this protocol is that your identity in the algorithm
+is going to be your public key. So we're definitely not going to share those yet. The private keys will always stay
+private, but we're going to collect together all of the public keys and share them using something like Matt's
+first phase. But we're never going to reveal whose key is whose. Like before, we're going to need to agree on an order
+for the participants. And this can be any order. Uh, I recommend using a random order instead of alphabetically.
+As someone whose last name falls squarely in the middle of the alphabet, I can attest that alphabetical order and
+reverse alphabetical order are quite unfair. I actually wrote a paper about this one time. I studied citation rates
+in a large database of authors and how those correlated to their alphabetical
+position. That paper is called academic advancement advice author articles as aa
+because I found that authors that have alphabetically early names do get more citations. It's obviously not a big
+effect but then I created a logical paradox by citing the least cited and least citable papers um in my own paper.
+Anyway, so the last person in the list is going to have a special role like before. I'll call them the chair. The
+chair generates a session public key different from their own personal public key. Uh and of course they have the
+private key and they share that with everyone. So now we'll proceed as before. The first player, the bishop
+here, takes their own public key and encrypts it with the session public key which renders it indecipherable to
+anyone except for the chair. And they send that encrypted message on to the next player. Note that we're treating keys as messages here. That'll come up
+again later. Now the second player does the same. They encrypt their key, add it to the list, and shuffle the list and pass it along. Like this, we get all of
+the encrypted keys passed to the chair in some random order. Now, when players were receiving this partial list,
+because it only had keys from people before them in the list, they could to do something about uh where these keys
+came from, but they're encrypted keys, and they're never going to see them again. So, if encryption works, they're
+not going to learn anything interesting about uh the public keys. Only the chair can get at the actual public keys, but
+they have a complete list of all other players. So, it doesn't help them learn anything about who anyone is except for
+themselves, and they already know that. So, the chair decrypts all of the personal public keys. Then, we need to
+put them in some order. And remember, the keys are just numbers. So, we sort them numerically from smallest to
+largest. And this is our cycle. The chair can just publish this list. The keys are just numbers, and they don't
+identify who owns them. So, we don't need to do anything fancy to pass it around in a secrecy preserving way to
+prevent shenanigans. Though, we do need everyone to check that list and make sure that their public key appears on
+it. And I guess that it's the right length. Otherwise, for example, the chair could put like multiple keys on
+that list that all belong to them and collect multiple presents. Very naughty.
+So, each player confirms that they're on the list without saying who they are, of course. And once we've succeeded at
+that, you can now find your Santa by just looking for your key. And the key before you in that list belongs to your
+Santa. Now, the extra cool thing is that we used public keys to identify the people, which means you can send a
+message to your Santa that only they can decrypt. So, the next step of the algorithm is to encode a message that
+says like what who you are and what your mailing address is and what you like as a gift. encrypt that with your Santa's
+public key and post that to the list. Encrypted messages also don't say who they're for. So, everyone has to try
+decrypting all of the messages. And if everyone successfully decrypts exactly one message, then the protocol has
+succeeded and they can send their presence. So easy, right? About as hard
+as clapping at the same time, which should only take I mean it's only one round, so it should only take an
+afternoon. To make all this feasible, I created a program, a website that does the key
+generation and encryption and decryption. It's a standalone program. It doesn't do
+any network stuff. You could save this and put it in your go bag for secret Santa apocalypse emergencies.
+And you could play with this. It's at http uh tom7.org/santa
+or https if you like cryptography. Now, I'm not confused about the
+likelihood that people will want to actually do this for their secret Santaas, but a full description of the algorithm is also there on the help page
+in case you want to try or if you want to know the details in order to try to hack me. And so, I was showing this to
+my friends on the video call and it was about 30 seconds before we were looking at the source code.
+What are those funny things after the two slashes? There's I don't see those in the code that I I work with most of the time.
+That's called math, Matt. Oh, right. This is Matt Godbbolt, who's a compiler
+guy and computer file. He's named after the website godbolt.org, which you may know if you're a C++ programmer.
+Excellent website. The first step of the protocol involves us generating our random private keys. I asked people to
+send in short clips of them demonstrating their random number generation technique, and Matt sent me
+about an hour of behindthe-scenes footage of him setting up his ancient acorn roasting upon an open fire to
+generate random numbers. The way that I'm doing this is to use a Mercen Twister 32-bit implementation in 6502
+assembly. And then in order to seed it with a genuine random number, I'm using the drive seek times um as I seek
+backwards and forwards between various parts of a disc drive in order to inject some realworld randomness into it. If
+you do principal component analysis on the participants in 2025, you'll find that the two main dimensions are how
+much is this person a British or Australian mathematician and how similar is their name to Matt or Cat. It gets
+pretty crowded in the corners cuz most of these people are basically just fully British mathematicians. For example,
+math lecturer Peter Rowlet, who I guess just has one of these ready to go, or Dr. Katie Steckles, who draws upon
+instances of mathematics in the real world. Look at these nice short clips.
+Some, like Sam Hartburn, strove to get a little bit out of the math corner by
+involving words. This one, A Wizard Versy by Ursula Luin. It's a really good
+book. If you haven't read it, you should do. And I'm going to choose a word, which is chance. Oh, what are the
+chances of that? So, chance has 1 2 3 4 5 six letters. So, that's the first
+digit of my uh private key, and then I'm going to keep going uh counting the
+number of letters in the words until I get bored. while others like Matt Scrogs,
+so I need to generate a random number, attempted to shed their math credibility by pretending they didn't know what's
+going on.
+The only person from last year who is not clearly a mathematician, but is clearly British, is Jeff Marshall, who
+loves math, but loves trains even more. I downloaded the office of rail and road statistics passenger numbers for railway
+journeys in all of Britain for the 24 to 25 period. They give you this spreadsheet and I've chosen the top 50
+least used stations. So for example, the least used station in the whole of the UK only got 68 passengers. The next
+least used got 76 and the next least used got 98. So if I just do a simple
+formula and the best bit about doing secret Santa is that I get to learn a new function every year. So this year
+I've learned text join. So text join uh true uh E7 through to E56 there. Boom.
+Concatenated uh passenger figures of least used stations. And that is how I
+generated my private key. Personally, I'm neither British nor really a mathematician. And so I'm not near
+anybody on this list, which is one of the reasons I invited my friend Yan Misili, who is someone that makes
+YouTube videos even harder to classify than mine. but like me does have a lot about Super Mario and mathematics.
+Okay, so I'm here at wiki data.org. I'm just going to click over here and go to random item. Uh, and here I've got a
+category youth organizations based in the Republic of the Congo. Uh, that comes with this Q ID here. I'm going to
+copy this ID except for the leading digit in order to offset the effects of Benford's law. Okay, then do that again.
+I got this other one. uh and append this to the end of that. Uh and I'm just
+going to keep doing that until I've got a sufficiently large number. And that should be reasonably random. I made
+myself a little AI robot in order to make myself some numbers. With the Sharpie embedded through its body, uh it
+dances around on the number file paper and writes some numbers for me. I had to really crank up its eccentricity because
+it was mostly just making zeros, which is not a creative number. here. Huh?
+No, it's not how it's supposed to work.
+I then took a high resolution scan of its work and OCR the digits therein using my emnest problem model which does
+all its inference by abusing floatingoint roundoff on this Nvidia Blackwell chip. This still however
+produced mostly zeros. The next step was to randomize the list of participants over and over again
+until someone agreed to be the chair. Sophie, how confident are you?
+I am happy to take that on. Yeah. Awesome. Okay. The chair has a lot of extra responsibilities and steps like
+generating the session key. Oh, I've just actually realized I probably am not the best person to do
+this because the three digit on my laptop isn't working. So,
+you don't need three. There's some information leakage there, but I think that that is actually mode us.
+That's actually perfect. I love it. Key space just reduced a tiny bit.
+So far so good. We would pass along this chain letter in that random order. Every
+person would add their public key encrypted with the session key, shuffle the list, and pass it on. This did take
+longer than I was expecting. Perhaps I shouldn't have included so many uh time zone differences. And perhaps I
+shouldn't have underestimated how busy some of these people are. Several of them were actually doing a show together that same weekend.
+So, I have completed my uh secret Santa words I've sent in. Sophie, have you completed your secret Santa and sent in?
+I'm still waiting. Wait, what is this secret? I'm still waiting.
+And the very last person, Ben Sparks, his laptop was like on stage for the
+entire day where anyone could hijack his private keys, but he was unable to participate in the protocol. But after a
+few days and some copy paste errors, we succeeded and everyone confirmed that their key was on the sorted list.
+It is a million:00 here. And I can't sleep, which is a normal
+thing for me. uh this time for Santa reasons which is you know a new reason
+it's always a new reason um and in particular we got the numbers
+the public keys so those are we've finally collected all of those and uh things are looking pretty good
+they're all quadratic residues for example but one of them they're sorted
+the first one is very small so most of them are 308 8 or 309 digits long as
+expected. This one is 301 digits. So either that's really good or I guess
+like really lucky uh or which is implausible or someone didn't actually paste their
+public key. Everyone confirmed a public key but someone didn't actually paste their public key. For example, they made
+a 301digit private key and shared that. or someone is a smartass and is messing
+around. We've been working on this for over a week. And if this goes wrong at this point, I'm not sure anyone is going
+to have the patience to do it again. Uh, okay. So, anyway, I think that this was
+um I have a theory that it's Matt Parker. The reason is I think he first
+of all, he knows that I'm good for it. Like he this is a fair game. I was
+messing with his system last year. Um, and he knows I'd be delighted by this
+kind of thing. He also threatened uh to like do the calculations by hand.
+And how open to being done by hand is this method.
+Um, there is a 300 digit given how high the bar can be for
+for that question. That's my guess. Now, why would you do this other than to mess with me? I think
+there's actually a rational basis. Um, if you think about the algorithm, you have a bunch of people trying to pick a
+number on the number line somewhere. And at the end, we're going to sort them. And it does seem pretty clear to me that
+the most prestigious numbers are the ones that are either very small, like close to zero, or very large, close to
+the prime. And actually, since we're using modular arithmetic here, the
+sorting, the smallest numbers and the largest numbers are right next to each other. So, if you wanted to find
+like-minded people or you just wanted to have prestigious numbers, um, seeking out numbers close to zero or
+close to P would make sense. Like, you would then first of all, you get the
+bragging rights. Second of all, you would be near other people that are as
+weird as you and as into it as you. Um, and those people presumably are conscientious giftgivers or receivers.
+So, the short answer is I'm going to pick my random number using Python's built-in ran range function. The longer
+answer is my attempt to hack the system is to use the fact that we're going to buy presents in the order that you get
+when you sort our public keys into numerical order from I assume smallest first. So because Tom 7 very generously
+had good source code, I was able to recreate his private public key generating algorithm in terrible Python
+code. And if I set this going, it's able to check 250 random keys. There's
+there's my rand range up here and keep track of at currently length uh 305 what
+the smallest public key so far is. So I'm going to leave that running. It's like 11:00 at night. Took me about an
+hour to put this together after work. And in the morning because I'm still like one or two away in the email chain,
+I will send in whatever private key. Well, I send in the public key, which should be the smallest one possible for
+the best private key I can find. We're down to 304 already. So, I don't know what this is going to get me other than
+surely someone else is going to do this. And if someone can beat me and find an even smaller legitimate public key,
+private key pair, that's the person I want buying me a gift. Well, anyway,
+turns out this person um was the only one that did this. So, they didn't find their community and maybe their
+giftgiver can learn something about them from their number, like that they like
+small numbers. um as presents. If it's not true, then we're going to need to do some kind of recovery protocol or
+something. Okay, now maybe I can get to bed.
+Speaking of getting to bed, we don't hold back from the details here on the Tom 7 channel. So, I'm going to go over
+the actual crypto system that we're using. You'll be able to see that Matt's hack essentially amounts to multiplying
+by seven a lot. Of course, you can skip over this. You can skip over anything in any video. To carry out my protocol, we
+need to use a public key crypto system. The classic one that you've probably heard of is RSA, and it's it's quite
+elegant. I love it actually. But in order to explain it, we would need to do some number theory, which means that I
+would need to learn some number theory. Fortunately, that's not necessary. There's a simpler and better, in my
+opinion, public key crypto system called Elgamal. It was invented by Taher Elgal in 1985. For practical purposes, it
+might not be as good as RSA, but for this kind of thing, it's superior. I think I can fit an entire description of
+it on this postcard. So, this is going to be postcard Elgal. We're going to try. Okay. Well, now I'm really
+committed to fitting all of the group theory on this little square. Uh, it's going to be pointless because either you
+already comfortable with this stuff and then the notation like this isn't going to help you. Um, or the notation is
+going to be overwhelming. But I want to impress upon you that this is not a complicated thing. Basically, we're going to pick some prime number P. Then
+we're going to consider all the numbers from 1 up to P minus one. So that's the numbers mod P except we're going to
+leave out zero. And the reason we leave out zero is we want a multiplicative group. Anytime you multiply two numbers,
+you get another number in that group. And multiplication happens mod P. And
+then importantly for any element in the group, so any number from 1 to P minus one, there's another number that is its
+inverse multiplicative inverse. And we'll write this as m^1. You could just think of 1 / m. Although it's not a
+fraction. It's just a it's an integer such that if you multiply it by m mod p, you get back 1. So 1 is in there
+already. And then so the inverse of 1 is one because 1 * 1 is 1. All the other ones are going to have more interesting
+inverses. And we can compute this inverse efficiently uh using extended gcd. There also exists a generator
+element. And I'm going to use the generator 7 uh for our crypto system
+which will only work for some choices of P but lots of choices of P actually. And
+the generator is such that every element is 7 times itself some number of times.
+So one again is trivial. One is 7 to the zeroth power. 7 itself will be 7 to the
+first power. Uh and then 7^ squ mod p will be some element and 7 cubed. You
+keep multiplying by 7. you'll cycle through all the elements. This is actually why this is called a cyclic group. So multiplying is easy mod p at
+least with a computer. Computing the inverse is easy. That's a little surprising actually, but there's an
+algorithm for it. Taking seven to some number forming an exponent is easy.
+There's a nice algorithm for that based on the numbers representation in binary.
+But we're going to assume that there's something that is not easy to do which is called the discrete logarithm. It's
+logarithm because it's just the opposite of exponentiation taking to the power and it's discreet
+because we're looking at integers here, right? So if I have s which I know is x
+to some y and even if I know s and x, there's no known efficient way to find
+out what y is. That is what power I've raised x to in order to get s. And this
+discrete logarithm problem is the foundation of why we can use this for cryptography. So it's in a way it's
+lucky that we don't have a good algorithm for this. Now we actually do have good algorithms for some choice of
+P and I might come back to that but we can choose P such that nobody knows how to reverse this exponentiation. Okay, I
+managed to fit all of the group theory we need um up there. So if you believe
+that the rest of this is actually I think elementary. All right, now we can talk about the Elgal crypto system
+itself. Basically, we're going to have system parameters that are shared by everyone that's using um a particular instance of
+this algorithm. And so for the Santa protocol, I shared ahead of time with people um these choice of parameters.
+And that does not need to be secret in any way. Then each participant will be able to generate a public and private
+key pair. And I'm going explain how that works. And then anyone will be able to use a public key to encrypt a message
+that can be only decrypted by that one person. So we're going to describe each of those parts. The shared parameters
+are just the choice of prime number P and our choice of generator. And again,
+I'm going to use seven as the generator here. P is a very big number. Well, it doesn't have to be really big, but it
+will limit the size of the messages that we can send because all the things we ever send around are numbers in the
+group. So they can't be any bigger than P minus one. Some choices of P are better than others. I'll come back to
+that in the advanced topics. Key generation is quite easy in RSA. You
+have to pick some big primes and keep them secret. Uh which is allows for less creativity here. You can use any number
+inside the group as your private key. So you pick that you keep it secret. You
+shouldn't pick one or P minus one. First of all, one is not a creative number. Second of all, those numbers are a
+little bit too special. Um in particular, one is going to leave your messages unencrypted.
+And the public key is simply our generator 7 raised to the exponent of the private key all modp p. So you can
+see that we're already using the hardness assumption from the uh paperclip part there because I'm going
+to share my public key and it shouldn't be possible for anyone to figure out what my private key is. If they could solve the discrete logarithm problem
+then they could just figure out what has seven been raised to in order to get this public key. Okay, so that's so far
+pretty simple, right? And the rest is going to be similarly simple. So let's talk about encryption. Encryption will
+be a little mysterious until we see how you decrypt. But to encrypt, what you have is someone's public key, which is
+just a number, and a message, which is also just a number. And you're going to pick a third number, Y, which is another
+element in the group. You should pick that randomly. This is like a one-time code that we're going to use to communicate securely. We won't send it
+directly, though. What we're going to do is compute a shared secret S, which is based on Y. And we just do that by
+raising the public key to the power of y all mod p. Now my encrypted message is
+two numbers. The first is 7 to the y and the second is my message times s that
+secret. Now s stands for secret. So I can't send s. Uh we assume that people
+can read the messages that are being sent. That's why we're doing cryptography. But the information that I'm sending will allow the recipient to
+recover s if they have the private key. And here's how they do that. As the recipient of this message, I have the
+private key and I have C1 and C2 and I want to compute S. Now, I know that the sender computed S as pub to the Y power
+um where I don't know why, but I do know pub. And then more importantly, I know the formula for pub. So, let's expand
+that. I computed it after all. It's just 7 to that private key that I've kept secret. Now remember that if I have x to
+the a to the b, that's x multiplied together a * and then all of that
+multiplied together b times, which is the same as x to the a * b. Um, it's just a rectangle. And then you could
+look at the other way around so that we have x to the b to the a, which means that we can rewrite this formula as 7 to
+the y to the private key. And the sender sent me 7 to the y. That's c1. And I
+have the private key. So I just do one modular exponentiation and I'm done. I have the shared secret S. And the whole
+point of S is that it was mixed with the message to make the message unintelligible by just multiplying it by
+the message mod P. Once I have S, I can compute the inverse of S, referring to the paperclip part. I haven't told you
+how to do that. But if I have the inverse of S and I take message time S times the inverse of S, then S and its
+inverse cancel out and I get back the message. So the sender has given me all of the clues that in addition to the
+private key which is secret to me, I can compute the shared secret s invert it and then compute the original message.
+That's the whole thing. I think it's beautiful and it it really has this minimal feeling to it, right? Like I
+used every piece. I only relied on one hard thing which is the discrete logarithm problem. The only bummer thing
+about Elgal from my point of view is that the message you send, the cipher text is actually twice as big as the the
+input message because of this random number Y. And in fact, we do we don't use this much for public key
+cryptography these days. Something like this is used in your web browser for key exchange. That is you and I want to
+agree on some number that no one can see. Then we can do the same thing only send C1. So now just one number and we
+can both agree on what S is without anyone else being able to tell. Um we could use that key to compute other
+encryption keys. And this is actually what we really do in practice. So in this weak analogy that serves mostly to
+foreshadow a gag later. Basically we're using the fact that turning this dial by
+A steps B times is the same as turning it by B steps A times. Gaining access to
+my stash of public keys. Now, I don't know if we can really consider Matt's hack uh to be hacking
+the algorithm. Although, he thinks, well, let me here. He'll tell you. And if you're saying what I did makes no
+difference to how the system ran, it's not really hacking it. Well, not this time, but once people realize what I've
+done, next time it's going to be a race to the top. But I'm going to give out a best hack award to someone who observed a slip up
+and deduced, I think, correctly, who their Santa is. After all of the chaos of getting the final list, the chair
+sent them around and then immediately sent around a second message correcting the first, claiming that they had made a
+copy-paste error. And shortly thereafter, Yan Meisily claimed that they now knew who their Santa was with
+high likelihood. And furthermore, that revealing this would now reveal their own identity to their Santi. Now, the
+main information that we had here were the messages that were passed around and then these lists from the chair. Now,
+one possibility is that Yan Misley's key is number two on this list and that they came to the same conclusion as me that
+public keys Gueorg is Matt Parker, but their actual reasoning was if the chair is going to make a mistake preparing
+this list, it's very likely that their mistake would be with their own key because it's the only one that's treated
+specially. And Yan Mesley noticed that they are the next one after this added key. And so, their Santa is likely the
+chair, Sophie. Now, I agree with this analysis, uh, except that I I know that Sophie is a proper mischievous genius,
+and she is more than capable of pulling off a false flag operation here. Remember, she claimed that her three key
+doesn't work, but there's clearly a three on this list. I guess advice to future years is as you're carrying out
+these protocols, pretending to make a mistake might be really good cover, but it turns out it was just a copy paste
+error. So, Yan Meisley gets the best hack award. I actually ended up learning who more than half of the public keys
+belong to mostly because people would just privately tell me as the organizer. Other than this though, I think the
+system held up. We are using a strong cryptographic system here. So I didn't expect that people would be able to hack
+it, but in order to increase the chances um I'm I'm doing it like raw there.
+Normally when you do this stuff, you'd have headers on each packet on each message and check sums or authenticated
+check sums so that you'd be able to check if something went wrong and you'd be able to, for example, tell the difference between a key and a message.
+Um, I didn't do any of that. We're just doing it with the raw numbers. And that does sometimes lead to surprising twists
+uh in analysis. And so there was one um interesting trick that I discovered and
+prevented against in the algorithm which has to do with well square numbers. I
+said before I would do some advanced Santa and there's so much to say but at this point I think my video is longer
+than most people take to plan and carry out their entire secret Santaas. So I'm
+going to try to keep this quick. As a reminder, we're working in this group of numbers mod p excluding zero. And an
+interesting fact about this group is it always has some non-trivial subgroups. Now, subgroup just means a subset of the
+numbers such that if you multiply any two numbers in the subset, you get a number in the subset. And you also have
+to have the identity that is one and multiplicative inverses. And these subgroups are related to p minus one.
+And remember, because we excluded zero, p minus one is the size of this group. So it's not that weird that P minus one
+would be involved. Now specifically for every divisor of P minus one, there's a
+subgroup with that size. So let's say that P minus one has two prime factors. Then there's some subgroup with S
+elements and some subgroup with T elements. Now, there's so much interesting stuff we could talk about
+here, but the important thing for Elgal encryption is that the discrete log problem, that is figuring out what
+exponent I could raise some number to to get another number, does have an efficient solution when all of the
+subgroups are small. And that's exactly the case when P minus one has lots of factors. So, we want to choose a good P.
+And the best you can do, P is odd, right? P minus one has to be even and so
+it definitely has a factor of two and then there's some other factor we want that one to be prime so we really want
+to use a prime of this form and the smaller prime is known as a Sophie Germaine prime after the mathematician
+so if we know the factors are two and s the only non-trivial subgroups will be of size two and size S and S is big it's
+about half the size of P and in this situation we believe the discrete logarithm is actually hard fine good
+whatever So the subgroup of size two was always going to suck. It just has one and negative one. But the subgroup of
+size S is really cool. This is where quadratic residues come in. And these come up all the time. I I've worked on
+completely unrelated projects where these were important. They're Leandre. So a number is a quadratic residue if
+it's a square number. Mod P. It's as simple as that. Now you're used to square numbers being rare, but mod P
+they're commonplace. In fact, exactly half of the numbers in this group are quadratic residues. And moreover,
+they're spread out like pretty much randomly, as random as anything gets that has a formula. So, let's take an
+example prime of that form. 96,827. And look at all of the numbers from one
+up to that number minus one. Uh, the white ones are quadratic residues and the black ones are not. And this is of
+course why QR codes look like this. So, let's make these a little bit less mysterious. Remember that generators
+always exist. Let's say the generator is seven. And what that means is every number in the group, every x is 7 to
+some power mod p. Now we can understand this idea of quadratic residue is actually just an evenness or oddness. If
+the exponent is even, then it has a factor of two in it. So we can just write it as a square number. If the
+exponent is odd, it's less obvious why it can't be written that way, like with a different base. But it is true. The
+quadratic residues are that subgroup of size S. And it's not that hard to understand why. If you multiply two
+quadratic residues together, you get another quadratic residue. It's a kind of parody. When you add two numbers that
+are even, you get an even number. And multiplying two things with even exponents means adding those even
+exponents. Okay. So, so why am I telling you all this? In Elgal, we work in this group.
+And alchemal is mostly multiplication which means that we get some kinds of par checks multiplicative par when we
+encrypt. There was a problem in the original formulation of my Santa protocol. Remember we're going to see
+encrypted public keys and some people are going to know whose encrypted public keys are whose like the second player
+definitely knows that the one message they get from the first player that's their encrypted public key. Later on,
+we're going to see all the actual public keys, and we don't want to be able to figure out whose key is whose. That
+would defeat the purpose, but about half of the keys will be quadratic residues. And there's something we can compute
+from the message that will be a quadratic residue if and only if the thing that was encrypted was a residue.
+So, we'd be able to look at messages and keys and know that some of them cannot correspond. That is, we'd be able to
+rule out that some players own some keys. Very naughty. So I did fix this in
+the algorithm that we used and the fix is very simple as these things go after you do the group theory lecture. It's
+two characters long. I multiply the private key you put in by two so that it's even. Therefore your public key is
+definitely a residue. If all of the keys are residues, you can't use this trick to rule any of them out.
+All right, so that's it. Uh the only thing that's left is for everyone to send a message to their Santa and then
+uh everyone has to try to decrypt all of the messages that are sent because they're not addressed to any particular person. You don't know who you're
+sending to. Um with the decrypted message, you learn how to send your Santi a gift and then that's it. And
+I asked Santa for a copy of their favorite novel and this definitely feels
+very bookshaped. Service model. I think I've read something else by Adrien Tchikovski but I haven't read this one.
+Thank you very much, Santa. I look forward to reading it. What? And another cappo. A partial five
+string. Hold on a minute. These are partial capos. These like So I can capo
+five strings and not the sixth one if you want like a different tuning on the bass. And that's
+a three string capo. Uh which means I'm going to have to learn to play guitar again essentially.
+And I'm going to work out what this is in a moment. Thanks, Santa.
+Oh, absolutely fantastic physics for cats. But this will be absolutely
+perfect. How amazing. Thank you, Secret Santa. So, what I got here is a it's a copy of
+John Olsson's Word Crime, uh, Solving Crime Through Forensic Linguistics. Uh,
+really interesting looking book. I I'm very excited to be uh, giving this a read.
+It's a tube. I asked for underground tube things, so they got me a tube.
+Very clever. Well played. Looks like multiple blinks. Three crabs puzzle.
+Excellent. Rearrange so all pieces will fit inside the large. Well, I'm doing that all live stream rather than paying attention. And
+cool. We've got Oh, nice. Programming puzzles big book
+from pages 7 to 99 range. However, inside
+rainbows and stars. Oh, wait a second. This isn't
+my secret Santa, is it? It's not. You don't have my secret Santa yet. No.
+Ah, taking too long. It is the essence of Secret Santa. Not only is this video 45 minutes or longer at this point
+because of the group theory lectures and the descriptions of last year's system and the descriptions of the hacking and
+all of the gags, but we took so long to do it that most of the packages have not yet arrived. I got my gift. Thank you so
+much whoever sent me one of those puzzles that you solved to show the calendar date. It's a lot of fun. Sadly,
+you sent it uh to my UK address and by the time it arrived, I'd changed
+hemispheres. But thanks for the same. Personally, I sent mine out as soon as I could. Although I had some trouble
+understanding what this person wanted. Um, but I figure, you know, nerds, they all like the same stuff.
+You know, raw elements from the periodic table and comic books. Anyway, the point
+is, it's fun to get something in the mail. I got to say though, UK postal addresses
+are even more confusing than the metric system. And it's not just me. At the post
+office, they refused to take my package and so I had to find a official post
+office dropbox so that I could let the computers take care of it. Anyway,
+happy holidays everybody. I'll see you next year. First class.
+I need to show you this. Actually, you need to hear it.
+Oh yeah. Thank you, Santa.
+https://tom7.org/santa/santa.html

@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+---
+
+## OVERVIEW
+This project is an online version of a secret santa method described by Tom7. Using this tool, Tom7's vision will be fully automated such that participants do not manually handle any cryptographic material.
+
+## DREAM UX FLOW
+
+The front end is a single button: Create a New Secret Santa Group
+when clicked, the creator (chair) is prompted for information, name, email, password, and group name. then the user clicks the Create button.
+then, once created, the creator is taken to the newly created group page. the creator of this group page will have a some unique features exclusive to the creator. this page will have a highly unique URL. 
+the group page will show the following to the creator:
+- number of people who have joined
+- first names of people who have joined (the creator will also have the ability to remove people from the group via this list, as well as specifically exclude certain people from the cycle process)
+- a large two step GREEN button that initiates the cycle
+- a small two step RED button that deletes the group and returns to the home page
+- another BLUE button that says JOIN THIS SECRET SANTA GROUP that when clicked will allow the creator to add their name/address/message to the member list.
+
+
+the creator will then share this URL. 
+then visitors to the URL will see: 
+- number of people who have joined
+- first names of people who have joined
+- a large GREEN button that says JOIN THIS SECRET SANTA GROUP
+when clicked, the member is prompted for information: name, email, password, and message to secret santa.
+once entered, this user becomes a member and their name is added to visible list of first names and the number of people who have joined includes them. 
+
+Once enough members have joined the group, the creator initiates the cycle.
+then every member of the group gets an email with their assignment, which inludes their santee's name, address, and message.
+the group page as seen by each member also now shows their assignment behind a 'reveal' or 'show' obscurity spoiler blocker.
+the group page will also now have a new counter: Gifts Confirmed Shipped.
+the group page will also have a button that says CONFIRM GIFT SHIPMENT, that they will click after they have shipped their gift to their assignment. 
+once all of the members have confirmed shipment, the group is labelled Complete. 
+
+## Tech stack:
+This will be a web app using React for the front end. the front end will use a very minimalist, simple, material design. zero emojis. 
+our github repo is https://github.com/LampByLit/secretsanta
+We will be deploying this via railway. Our railway mounted volume will be at /data
+We will be using MailJet for emails. our API keys for mailjet are:
+api key
+5b0d99f321775b96f2836edbd28e9fd9
+secret key
+a1b411cb0d8032437c1bf72c32badb41
+
+## Behaviour
+please be concise and not too verbose.
+
+
