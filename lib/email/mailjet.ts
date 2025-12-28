@@ -5,6 +5,28 @@ const mailjet = new Mailjet({
   apiSecret: process.env.MAILJET_SECRET_KEY || 'a1b411cb0d8032437c1bf72c32badb41',
 });
 
+// Check sender email verification status (call this once to debug)
+export async function checkSenderStatus() {
+  try {
+    const senderEmail = process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com';
+    console.log(`[MailJet] Checking sender status for: ${senderEmail}`);
+    
+    // Try to get sender info - this will fail if not verified
+    const result = await mailjet.get('sender').request({
+      Email: senderEmail,
+    });
+    
+    console.log(`[MailJet] Sender status:`, JSON.stringify(result.body, null, 2));
+    return result.body;
+  } catch (error: any) {
+    console.error(`[MailJet] Sender check failed (likely not verified):`, error.message || error);
+    if (error.response) {
+      console.error(`[MailJet] Error response:`, JSON.stringify(error.response.body, null, 2));
+    }
+    return null;
+  }
+}
+
 export async function sendAssignmentEmail(
   toEmail: string,
   santaName: string,
@@ -57,11 +79,20 @@ View your group: https://secretestsanta.up.railway.app/group/${groupUrl}`,
 
     console.log(`[MailJet] Email sent successfully. Response:`, JSON.stringify(result.body, null, 2));
     
+    // Extract MessageID for tracking
+    const messageId = result.body?.Messages?.[0]?.To?.[0]?.MessageID;
+    const messageUUID = result.body?.Messages?.[0]?.To?.[0]?.MessageUUID;
+    
+    if (messageId) {
+      console.log(`[MailJet] MessageID: ${messageId}, UUID: ${messageUUID}`);
+      console.log(`[MailJet] Check delivery status at: https://app.mailjet.com/statistics/message/${messageId}`);
+    }
+    
     // Note: MailJet "success" means the email was accepted, not necessarily delivered
-    // If emails aren't being received, check:
-    // 1. Sender email is verified in MailJet dashboard (Account Settings → Sender & Domains)
-    // 2. Check spam folder
-    // 3. For disposable emails (like yopmail), there may be delays or filtering
+    // Common issues:
+    // 1. Sender email not verified in MailJet (Account Settings → Sender & Domains)
+    // 2. MailJet sandbox mode (free tier) - check account status
+    // 3. SPF/DKIM not configured for domain
     
     return result;
   } catch (error: any) {
