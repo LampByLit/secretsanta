@@ -11,7 +11,7 @@ export async function POST(
 ) {
   try {
     const { groupId } = params;
-    const { email, password } = await request.json();
+    const { email, password, santeeName, santeeAddress, santeeMessage } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -62,34 +62,55 @@ export async function POST(
     if (!alreadyDecrypted) {
       // Mark as decrypted
       dbHelpers.markAssignmentDecrypted(groupId, member.id);
-      
-      // Get assignment to send email
-      const assignment = dbHelpers.getAssignment(groupId, member.id);
-      if (assignment) {
-        const db = getDb();
-        const santeeStmt = db.prepare('SELECT name, address, message FROM members WHERE id = ?');
-        const santee = santeeStmt.get(assignment.santee_id) as { name: string; address: string; message: string } | undefined;
-        
-        if (santee) {
-          const group = dbHelpers.getGroupById(groupId);
-          if (group) {
-            try {
-              // Use plaintext email from request, not encrypted member.email
-              await sendAssignmentEmail(
-                email, // Use plaintext email from request, not encrypted member.email
-                member.name,
-                santee.name,
-                santee.address,
-                santee.message,
-                group.unique_url
-              );
-              console.log(`[Decrypt Assignment] ✓ Email sent to ${email} (${member.name})`);
-            } catch (emailError: any) {
-              console.error(`[Decrypt Assignment] ✗ Failed to send email to ${email}:`, emailError.message || emailError);
-              // Continue even if email fails
-            }
-          }
+    }
+    
+    // Send email with decrypted santee data (if provided by client)
+    // The client decrypts the ElGamal-encrypted message and sends us the plaintext data
+    // We send the email even if already decrypted (if data is provided) to allow testing/resending
+    console.log(`[Decrypt Assignment] Received data:`, { 
+      alreadyDecrypted,
+      hasSanteeName: !!santeeName, 
+      hasSanteeAddress: !!santeeAddress, 
+      hasSanteeMessage: !!santeeMessage,
+      santeeNameLength: santeeName?.length,
+      santeeAddressLength: santeeAddress?.length,
+      santeeMessageLength: santeeMessage?.length
+    });
+    
+    if (santeeName && santeeAddress && santeeMessage) {
+      const group = dbHelpers.getGroupById(groupId);
+      if (group) {
+        try {
+          // Use plaintext email and decrypted santee data from client
+          console.log(`[Decrypt Assignment] Sending email with decrypted data:`, {
+            to: email,
+            santaName: member.name,
+            santeeName,
+            santeeAddressPreview: santeeAddress.substring(0, 50),
+            santeeMessagePreview: santeeMessage.substring(0, 50)
+          });
+          await sendAssignmentEmail(
+            email, // Use plaintext email from request, not encrypted member.email
+            member.name,
+            santeeName, // Decrypted from ElGamal message (client-side)
+            santeeAddress, // Decrypted from ElGamal message (client-side)
+            santeeMessage, // Decrypted from ElGamal message (client-side)
+            group.unique_url
+          );
+          console.log(`[Decrypt Assignment] ✓ Email sent to ${email} (${member.name})`);
+        } catch (emailError: any) {
+          console.error(`[Decrypt Assignment] ✗ Failed to send email to ${email}:`, emailError.message || emailError);
+          // Continue even if email fails
         }
+      }
+    } else {
+      if (!alreadyDecrypted) {
+        // Only warn if this is the first time (not already decrypted)
+        console.warn(`[Decrypt Assignment] No decrypted santee data provided, skipping email. Received:`, {
+          santeeName: santeeName ? 'present' : 'missing',
+          santeeAddress: santeeAddress ? 'present' : 'missing',
+          santeeMessage: santeeMessage ? 'present' : 'missing'
+        });
       }
     }
 

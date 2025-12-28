@@ -174,10 +174,23 @@ export default function AssignmentDisplay({
       }
 
       // Step 5: Mark as decrypted and send email (first time only)
+      // Send decrypted santee data so server can include it in the email
+      console.log('[Client] Sending decrypted assignment data:', {
+        santeeName: decryptedAssignment.santeeName,
+        santeeAddress: decryptedAssignment.santeeAddress.substring(0, 50) + '...',
+        santeeMessage: decryptedAssignment.santeeMessage.substring(0, 50) + '...',
+      });
+      
       const decryptResponse = await fetch(`/api/groups/${groupId}/decrypt-assignment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          password,
+          santeeName: decryptedAssignment.santeeName,
+          santeeAddress: decryptedAssignment.santeeAddress,
+          santeeMessage: decryptedAssignment.santeeMessage,
+        }),
       });
 
       if (!decryptResponse.ok) {
