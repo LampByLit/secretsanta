@@ -218,12 +218,18 @@ export default function GroupPage() {
       // A user is "fledged" if they're in the members table
       setIsMember(data.isMember || false);
       
+      console.log(`[Group Page] Loaded group data:`, {
+        status: data.group.status,
+        isCreator: !!creatorCookie,
+        isMember: data.isMember,
+        creatorEmail: creatorEmailFromCookie,
+        memberCount: data.memberCount
+      });
+      
       // If creator is also a member and group is closed, trigger backfill automatically
       if (creatorCookie && data.isMember && data.group.status === 'closed') {
         const creatorEmail = creatorEmailFromCookie || '';
-        console.log(`[Auto Backfill] Creator ${creatorEmail} is also a member, checking if backfill needed...`);
-        // Trigger backfill check - we'll need the password, so prompt if needed
-        // For now, just log - user can click login button if needed
+        console.log(`[Group Page] ⚠ Creator ${creatorEmail} is also a member but backfill is missing - show button`);
       }
       
       // Assignment loading is handled by the AssignmentDisplay component
