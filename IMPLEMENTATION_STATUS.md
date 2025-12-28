@@ -9,7 +9,7 @@
 - ✅ Tailwind CSS configuration
 
 ### Cryptographic Engine
-- ✅ ElGamal key pair generation (with ×2 fix for quadratic residues)
+- ✅ ElGamal key pair generation (with ×2 fix for quadratic residues) - **CLIENT-SIDE**
 - ✅ ElGamal encryption/decryption
 - ✅ AES encryption/decryption for private keys (client-side)
 - ⚠️ **NOTE**: ElGamal prime P is a placeholder - needs to be replaced with actual 1024-bit Sophie Germain prime from Tom7's spec
@@ -18,8 +18,8 @@
 - ✅ `/api/groups/create` - Create new group
 - ✅ `/api/groups/by-url/[slug]` - Get group by URL slug
 - ✅ `/api/groups/[groupId]` - Get group data
-- ✅ `/api/groups/[groupId]/join` - Join group
-- ✅ `/api/groups/[groupId]/update-private-key` - Store encrypted private key
+- ✅ `/api/groups/[groupId]/join` - Join group (accepts client-generated keys)
+- ✅ `/api/groups/[groupId]/update-private-key` - Store encrypted private key (legacy, may be used for password reset)
 - ✅ `/api/groups/[groupId]/initiate-cycle` - Initiate Secret Santa cycle
 - ✅ `/api/groups/[groupId]/assignment` - Get assignment (requires auth)
 - ✅ `/api/groups/[groupId]/confirm-shipment` - Confirm gift shipment

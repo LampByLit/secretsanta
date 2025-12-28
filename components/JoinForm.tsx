@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { encryptPrivateKey } from '@/lib/crypto/aes';
+import { generateKeyPair } from '@/lib/crypto/elgamal';
 
 interface JoinFormProps {
   groupId: string;
@@ -28,34 +29,27 @@ export default function JoinForm({ groupId, onClose, onSuccess, creatorEmail, cr
     setError('');
 
     try {
-      // Step 1: Join group and get key pair
+      // Step 1: Generate key pair client-side
+      const keyPair = await generateKeyPair();
+      
+      // Step 2: Encrypt private key with password
+      const encryptedPrivateKey = await encryptPrivateKey(keyPair.privateKey.toString(), formData.password);
+
+      // Step 3: Join group with public key and encrypted private key
       const joinResponse = await fetch(`/api/groups/${groupId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          publicKey: keyPair.publicKey.toString(),
+          encryptedPrivateKey,
+        }),
       });
 
       const joinData = await joinResponse.json();
 
       if (!joinResponse.ok) {
         throw new Error(joinData.error || 'Failed to join group');
-      }
-
-      // Step 2: Encrypt private key with password
-      const encryptedPrivateKey = await encryptPrivateKey(joinData.privateKey, formData.password);
-
-      // Step 3: Update member with encrypted private key
-      const updateResponse = await fetch(`/api/groups/${groupId}/update-private-key`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          memberId: joinData.memberId,
-          encryptedPrivateKey,
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to save encrypted private key');
       }
 
       // Store session cookie
