@@ -434,7 +434,7 @@ export default function GroupPage() {
             </>
           )}
 
-                  {showCloseConfirm && (
+          {showCloseConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                       <div className="bg-white p-6 rounded-lg max-w-md w-full">
                         <h3 className="text-xl font-bold mb-4">Close Group</h3>
@@ -516,17 +516,19 @@ export default function GroupPage() {
                     </div>
                   )}
 
-                  <button
-                    onClick={() => {
-                      setDeleteEmail(creatorEmail || '');
-                      setShowDeleteConfirm(true);
-                    }}
-                    className="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                  >
-                    DELETE GROUP
-                  </button>
+          {isCreator && (
+            <button
+              onClick={() => {
+                setDeleteEmail(creatorEmail || '');
+                setShowDeleteConfirm(true);
+              }}
+              className="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            >
+              DELETE GROUP
+            </button>
+          )}
 
-                  {showDeleteConfirm && (
+          {showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                       <div className="bg-white p-6 rounded-lg max-w-md w-full">
                         <h3 className="text-xl font-bold mb-4 text-red-600">Confirm Deletion</h3>
@@ -583,7 +585,7 @@ export default function GroupPage() {
                     </div>
                   )}
 
-                  {showExcludeConfirm && excludeMemberId && (
+          {showExcludeConfirm && excludeMemberId && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                       <div className="bg-white p-6 rounded-lg max-w-md w-full">
                         <h3 className="text-xl font-bold mb-4">
@@ -650,11 +652,6 @@ export default function GroupPage() {
                       </div>
                     </div>
                   )}
-                </>
-              )}
-
-            </>
-          )}
 
           {(groupData.group.status === 'closed' || groupData.group.status === 'ready' || groupData.group.status === 'messages_ready' || groupData.group.status === 'complete') && (
             <>
