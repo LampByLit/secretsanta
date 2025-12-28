@@ -78,6 +78,9 @@ export async function GET(
       );
     }
 
+    // Store original status before any updates (used to determine which members to return)
+    const originalStatus = group.status;
+
     // Check and update group status from 'closed' to 'ready' if all members have completed backfill
     if (group.status === 'closed') {
       dbHelpers.checkAndUpdateGroupStatus(groupId);
@@ -90,9 +93,10 @@ export async function GET(
 
     // When group is closed, ALL members need to create messages to ALL other members
     // When group is open, only create messages to members who joined after
+    // Use originalStatus (not updated status) to determine which members to return
     let newMembers: Array<{ id: string; publicKey: string }>;
     
-    if (group.status === 'closed') {
+    if (originalStatus === 'closed') {
       // Get ALL other members (for bidirectional messages when group is closed)
       const allMembers = dbHelpers.getMembersByGroup(groupId, false);
       newMembers = allMembers
