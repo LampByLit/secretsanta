@@ -3,7 +3,13 @@ import path from 'path';
 import fs from 'fs';
 import { Group, Member, Assignment, ShipmentConfirmation } from './schema';
 
-const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'data', 'secretsanta.db');
+// Handle DB_PATH - if it's a directory, append filename; if it's a file, use as-is
+const rawDbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'secretsanta.db');
+const DB_PATH = fs.existsSync(rawDbPath) && fs.statSync(rawDbPath).isDirectory()
+  ? path.join(rawDbPath, 'secretsanta.db')
+  : rawDbPath.endsWith('.db')
+  ? rawDbPath
+  : path.join(rawDbPath, 'secretsanta.db');
 
 // Log database path on module load (for debugging)
 if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
