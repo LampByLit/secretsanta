@@ -1,8 +1,8 @@
 import Mailjet from 'node-mailjet';
 
 const mailjet = new Mailjet({
-  apiKey: process.env.MAILJET_API_KEY || '5b0d99f321775b96f2836edbd28e9fd9',
-  apiSecret: process.env.MAILJET_SECRET_KEY || 'a1b411cb0d8032437c1bf72c32badb41',
+  apiKey: process.env.MAILJET_API_KEY,
+  apiSecret: process.env.MAILJET_SECRET_KEY,
 });
 
 export async function sendAssignmentEmail(
@@ -18,7 +18,7 @@ export async function sendAssignmentEmail(
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com',
+            Email: process.env.MAILJET_SENDER_EMAIL,
             Name: 'Secret Santa',
           },
           To: [
@@ -70,7 +70,7 @@ export async function sendPasswordResetEmail(
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_SENDER_EMAIL || 'santa@lampbylit.com',
+            Email: process.env.MAILJET_SENDER_EMAIL,
             Name: 'Secret Santa',
           },
           To: [
