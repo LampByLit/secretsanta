@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crypto Engine Test</title>
+    <script type="module">
+        // Import crypto functions - we'll need to adapt this
+        // For now, let's create a standalone test
+        
+        import { generateKeyPair, encrypt, decrypt, encodeMessage, decodeMessage, P, G } from './lib/crypto/elgamal.js';
+        import { modPow } from 'https://cdn.jsdelivr.net/npm/bigint-crypto-utils@2.0.0/+esm';
+        
+        async function runTests() {
+            const results = document.getElementById('results');
+            const log = (msg, isError = false) => {
+                const div = document.createElement('div');
+                div.style.color = isError ? 'red' : 'green';
+                div.textContent = msg;
+                results.appendChild(div);
+                console.log(msg);
+            };
+            
+            log('🧪 Starting Crypto Engine Tests...\n');
+            
+            try {
+                // Test 1: Key pair generation
+                log('Test 1: Generating key pair...');
+                const keyPair = await generateKeyPair();
+                log(`✓ Generated key pair`);
+                log(`  Public key: ${keyPair.publicKey.toString().substring(0, 50)}...`);
+                log(`  Private key: ${keyPair.privateKey.toString().substring(0, 50)}...`);
+                
+                // Test 2: Verify public key = g^privateKey mod P
+                log('\nTest 2: Verifying public key matches private key...');
+                const computedPublicKey = await modPow(G, keyPair.privateKey, P);
+                if (computedPublicKey.toString() === keyPair.publicKey.toString()) {
+                    log('✓ Public key matches g^privateKey mod P');
+                } else {
+                    log('❌ Public key does NOT match!', true);
+                    log(`  Computed: ${computedPublicKey.toString().substring(0, 50)}...`, true);
+                    log(`  Stored: ${keyPair.publicKey.toString().substring(0, 50)}...`, true);
+                }
+                
+                // Test 3: Message encoding/decoding
+                log('\nTest 3: Testing message encoding/decoding...');
+                const testName = 'John Doe';
+                const testAddress = '123 Main St, City, State 12345';
+                const testMessage = 'I like books and puzzles!';
+                
+                const encoded = encodeMessage(testName, testAddress, testMessage);
+                log(`✓ Encoded message to bigint: ${encoded.toString().substring(0, 50)}...`);
+                
+                const decoded = decodeMessage(encoded);
+                log(`✓ Decoded message:`);
+                log(`  Name: ${decoded.name}`);
+                log(`  Address: ${decoded.address}`);
+                log(`  Message: ${decoded.message}`);
+                
+                if (decoded.name === testName && decoded.address === testAddress && decoded.message === testMessage) {
+                    log('✓ Encoding/decoding round-trip successful!');
+                } else {
+                    log('❌ Encoding/decoding round-trip FAILED!', true);
+                    log(`  Expected name: ${testName}, got: ${decoded.name}`, true);
+                    log(`  Expected address: ${testAddress}, got: ${decoded.address}`, true);
+                    log(`  Expected message: ${testMessage}, got: ${decoded.message}`, true);
+                }
+                
+                // Test 4: Encryption/Decryption
+                log('\nTest 4: Testing encryption/decryption...');
+                const encrypted = await encrypt(keyPair.publicKey, encoded);
+                log(`✓ Encrypted message:`);
+                log(`  c1: ${encrypted.c1.toString().substring(0, 50)}...`);
+                log(`  c2: ${encrypted.c2.toString().substring(0, 50)}...`);
+                
+                const decrypted = await decrypt(keyPair.privateKey, encrypted);
+                log(`✓ Decrypted to bigint: ${decrypted.toString().substring(0, 50)}...`);
+                
+                if (decrypted.toString() === encoded.toString()) {
+                    log('✓ Encryption/decryption round-trip successful!');
+                } else {
+                    log('❌ Encryption/decryption round-trip FAILED!', true);
+                    log(`  Expected: ${encoded.toString().substring(0, 50)}...`, true);
+                    log(`  Got: ${decrypted.toString().substring(0, 50)}...`, true);
+                }
+                
+                // Test 5: Full round-trip
+                log('\nTest 5: Full round-trip test (encode → encrypt → decrypt → decode)...');
+                const finalDecoded = decodeMessage(decrypted);
+                if (finalDecoded.name === testName && finalDecoded.address === testAddress && finalDecoded.message === testMessage) {
+                    log('✓✓✓ FULL ROUND-TRIP SUCCESSFUL! ✓✓✓');
+                    log('🎉 Crypto engine is working correctly!');
+                } else {
+                    log('❌ Full round-trip FAILED!', true);
+                }
+                
+            } catch (error) {
+                log(`❌ Test failed with error: ${error.message}`, true);
+                console.error(error);
+            }
+        }
+        
+        runTests();
+    </script>
+</head>
+<body>
+    <h1>Crypto Engine Test</h1>
+    <div id="results"></div>
+</body>
+</html>
+
