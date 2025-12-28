@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="flex flex-col items-center gap-8 max-w-4xl">
-        <div className="text-center text-sm font-bold text-gray-700 leading-relaxed">
+        <div className="text-justify text-sm font-bold text-gray-700 leading-relaxed">
           This tool is based on the following video by Tom7:{" "}
           <a
             href="https://www.youtube.com/watch?v=4pG8_bWpmaE"
