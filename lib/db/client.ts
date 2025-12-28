@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { Group, Member, Assignment, ShipmentConfirmation } from './schema';
 
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'data', 'secretsanta.db');
@@ -9,15 +10,24 @@ let db: Database.Database | null = null;
 export function getDb(): Database.Database {
   if (!db) {
     // Ensure data directory exists
-    const fs = require('fs');
     const dbDir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
+    try {
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+    } catch (error) {
+      console.error(`Failed to create database directory: ${dbDir}`, error);
+      throw error;
     }
     
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    initializeSchema(db);
+    try {
+      db = new Database(DB_PATH);
+      db.pragma('journal_mode = WAL');
+      initializeSchema(db);
+    } catch (error) {
+      console.error(`Failed to open database at: ${DB_PATH}`, error);
+      throw error;
+    }
   }
   return db;
 }
