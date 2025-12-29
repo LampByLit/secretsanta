@@ -1,1 +1,0 @@
-please read this line by line, and i mean COMPLETELY, so you understand it completely and can answer any questions about it.
