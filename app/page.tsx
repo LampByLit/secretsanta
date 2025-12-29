@@ -24,8 +24,15 @@ export default function Home() {
             https://github.com/LampByLit/secretsanta
           </a>
           . All client key generation and decrypting is handled client-side, such that users' identities are never stored unencrypted server-side, and therefore not I nor anybody can access users' private data. Please see my follow-up to Tom7's video here:{" "}
-          <span className="text-gray-500">[placeholder WIP]</span>{" "}
-          Tom7's Secretest Santa Typescript Unwrapping.
+          <a
+            href="https://www.youtube.com/watch?v=yIXAYsU9Hg8"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Tom7's Secretest Santa Typescript Unwrapping
+          </a>
+          .
         </div>
         <div className="text-center text-green-600 text-sm">
           Once you have created your <span className="text-red-600 font-bold">GROUP</span>, you can <span className="text-red-600 font-bold">SHARE</span> the <span className="text-red-600 font-bold">URL</span> with your <span className="text-red-600 font-bold">FRIENDS</span> and <span className="text-red-600 font-bold">FAMILY</span>.
