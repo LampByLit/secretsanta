@@ -30,7 +30,7 @@ export default function Home() {
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            Tom7's Secretest Santa Typescript Unwrapping
+            Applied Complification: Tom7 and Christmas Crypto
           </a>
           .
         </div>
